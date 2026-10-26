@@ -1,7 +1,7 @@
 // The eight studio pages, wired to the casting API.
 import { useEffect, useState } from "react";
 import { api } from "../lib/api";
-import { CastForm, Profile, ProjectDetail, ProjectForm, ShortlistTalent, TalentForm } from "./drawers";
+import { CastForm, Profile, ProjectDetail, ProjectForm, ShortlistTalent, TalentForm, deleteProject } from "./drawers";
 import { Field, FormError, Heading, Photo, Status, initials, money, pad2, shortDate, useData, useStudio } from "./shared";
 
 async function exportTalent(format, filters, toast) {
@@ -18,7 +18,7 @@ function Stats() {
   const { data: s } = useData(() => api.get("studio/summary/"));
   const items = [
     ["Total talent", s?.total, "Your growing network", "♙"],
-    ["Available now", s?.available, "Ready for the next story", "◉"],
+    ["Confirmed casts", s?.confirmed_casts, "Faces locked for active shoots", "✓"],
     ["Active projects", s?.active_projects, "Stories in the making", "▣"],
     ["Your favorites", s?.favorites, "The people you come back to", "♡"],
   ];
@@ -54,7 +54,6 @@ export function Card({ t, onFav }) {
     <article className="talent">
       <div className={"portrait" + (t.photo ? "" : " noimg")} onClick={open}>
         {t.photo ? <img src={t.photo.card} alt={t.full_name} loading="lazy" /> : initials(t.full_name)}
-        <Status s={t.availability} />
         <button className={"heart" + (t.is_favorite ? " saved" : "")} aria-label={`Favorite ${t.full_name}`} onClick={fav}>{t.is_favorite ? "♥" : "♡"}</button>
         <span className="image-label">{(t.categories[0]?.name || "").toUpperCase()}</span>
       </div>
@@ -83,7 +82,6 @@ export function TalentPage() {
   const [cat, setCat] = useState("");
   const [gender, setGender] = useState("");
   const [loc, setLoc] = useState("");
-  const [availability, setAvailability] = useState("");
   const [sort, setSort] = useState("recent");
   const [filters, setFilters] = useState(false);
   const [minAge, setMinAge] = useState("");
@@ -104,7 +102,7 @@ export function TalentPage() {
   }, [query]);
 
   const params = {
-    q: debounced, category: cat, gender, city: loc, availability, actual_age_min: minAge, actual_age_max: maxAge, fee_max: maxFee,
+    q: debounced, category: cat, gender, city: loc, actual_age_min: minAge, actual_age_max: maxAge, fee_max: maxFee,
     favorite: tab === "fav" ? "1" : "", sort: tab === "recent" || sort === "recent" ? "newest" : sort === "fee" ? "fee" : "name",
     page_size: tab === "recent" ? 4 : 200,
   };
@@ -121,7 +119,7 @@ export function TalentPage() {
   }, [JSON.stringify(params), version]);
 
   const reset = () => {
-    setMinAge(""); setMaxAge(""); setMaxFee(""); setQuery(""); setCat(""); setLoc(""); setGender(""); setAvailability("");
+    setMinAge(""); setMaxAge(""); setMaxFee(""); setQuery(""); setCat(""); setLoc(""); setGender("");
   };
   const exportFilters = { ...params, page_size: undefined };
   const shown = rows ? rows.results : [];
@@ -155,12 +153,6 @@ export function TalentPage() {
         <select aria-label="Location" value={loc} onChange={(e) => setLoc(e.target.value)}>
           <option value="">All locations</option>
           {(places?.cities || []).map((c) => <option key={c}>{c}</option>)}
-        </select>
-        <select aria-label="Availability" value={availability} onChange={(e) => setAvailability(e.target.value)}>
-          <option value="">Availability</option>
-          <option value="available">Available</option>
-          <option value="hold">On hold</option>
-          <option value="booked">Booked</option>
         </select>
         <button onClick={() => setFilters(!filters)}>☷ &nbsp; Filters {filters ? "−" : "+"}</button>
       </div>
@@ -197,8 +189,6 @@ export function OverviewPage() {
   const { openDrawer, go } = useStudio();
   const { data: projects } = useData(() => api.get("studio/projects/", { scope: "active" }));
   const { data: favs } = useData(() => api.get("talent/", { favorite: "1", page_size: 4, sort: "name" }));
-  const { data: s } = useData(() => api.get("studio/summary/"));
-  const pct = s && s.total ? Math.round(100 * (s.total - s.consent_pending) / s.total) : 0;
   return (
     <>
       <Heading eye="CREATIVHEADS STUDIO" title="Good stories start with good people." sub="Your casting workspace, at a glance.">
@@ -219,8 +209,6 @@ export function OverviewPage() {
         </div>
         <div className="panel">
           <h2>A little attention goes a long way.</h2>
-          <p>{s ? s.consent_pending : "··"} profiles have consent details to review.</p>
-          <div className="bar"><i style={{ width: `${pct}%` }} /></div>
           <p>Keep profiles current so your next casting is easier.</p>
           <button style={{ marginTop: 25 }} onClick={() => go("reviews")}>Review profiles →</button>
         </div>
@@ -236,7 +224,8 @@ export function OverviewPage() {
 
 // ---------------------------------------------------------------- projects
 export function ProjectsPage() {
-  const { openDrawer } = useStudio();
+  const studio = useStudio();
+  const { openDrawer } = studio;
   const [tab, setTab] = useState("active");
   const { data } = useData(() => api.get("studio/projects/", { scope: "all" }));
   const list = data ? data.projects.filter((p) => p.is_closed === (tab === "completed")) : [];
@@ -254,7 +243,7 @@ export function ProjectsPage() {
         {list.map((p) => {
           const confirmed = p.roles.filter((r) => r.confirmed);
           return (
-            <article className="project" key={p.id}>
+            <article className={"project" + (p.studio_status === "Confirmed" ? " is-confirmed" : "")} key={p.id}>
               <div className="project-open" role="button" tabIndex={0} onClick={() => openDrawer(<ProjectDetail id={p.id} />)} onKeyDown={(e) => e.key === "Enter" && openDrawer(<ProjectDetail id={p.id} />)}>
                 <div style={{ display: "flex", justifyContent: "space-between" }}>
                   <div className="projecticon">▣</div>
@@ -270,6 +259,7 @@ export function ProjectsPage() {
               <div className="actions" style={{ marginTop: 18 }}>
                 <button onClick={() => openDrawer(<ProjectDetail id={p.id} />)}>View roles</button>
                 <button onClick={() => openDrawer(<ProjectForm project={p} />)}>Edit project</button>
+                <button onClick={() => deleteProject(p, studio)}>Delete</button>
               </div>
             </article>
           );
@@ -376,6 +366,54 @@ export function HistoryPage() {
 }
 
 // ---------------------------------------------------------------- categories & tags
+function CategoryRow({ c }) {
+  const { toast, refresh } = useStudio();
+  const [editing, setEditing] = useState(false);
+  async function rename(e) {
+    e.preventDefault();
+    const name = e.target.name.value.trim();
+    if (!name) return;
+    try {
+      await api.patch(`terms/${c.id}/`, { name });
+      setEditing(false);
+      refresh();
+      toast("Category renamed");
+    } catch (err) {
+      toast(err.errors?.name ? "That category already exists" : err.message);
+    }
+  }
+  async function remove() {
+    if (!window.confirm(`Delete the category "${c.name}"?${c.usage ? ` ${c.usage} talent use it; their profiles are kept.` : ""}`)) return;
+    try {
+      await api.del(`terms/${c.id}/`);
+      refresh();
+      toast("Category deleted");
+    } catch (err) {
+      toast(err.message);
+    }
+  }
+  if (editing) {
+    return (
+      <form className="row" onSubmit={rename}>
+        <input name="name" defaultValue={c.name} required autoFocus style={{ flex: 1 }} />
+        <div className="actions">
+          <button type="button" onClick={() => setEditing(false)}>Cancel</button>
+          <button className="primary">Save</button>
+        </div>
+      </form>
+    );
+  }
+  return (
+    <div className="row">
+      <div>{c.name}<small>{c.usage} talent</small></div>
+      <div className="actions">
+        <button onClick={() => setEditing(true)}>Edit</button>
+        <button onClick={remove}>Delete</button>
+      </div>
+    </div>
+  );
+}
+
 export function CategoriesPage() {
   const { toast, refresh, go, setTalentQuery } = useStudio();
   const { data } = useData(() => api.get("terms/", { usage: "1" }));
@@ -400,7 +438,7 @@ export function CategoriesPage() {
       <div className="cols">
         <div className="panel">
           <h2>Talent categories</h2>
-          {cats.map((c) => <div className="row" key={c.id}><span>{c.name}</span><small>{c.usage} talent</small></div>)}
+          {cats.map((c) => <CategoryRow key={c.id} c={c} />)}
           <form onSubmit={add} style={{ display: "flex", gap: 10, marginTop: 20 }}>
             <input name="category" placeholder="New category" required style={{ flex: 1 }} />
             <button className="primary">＋ Add</button>
@@ -437,7 +475,6 @@ export function ReviewsPage() {
         {data && data.results.length === 0 && <p>Nothing to review yet.</p>}
         {data && data.results.map((t) => {
           const notes = [
-            t.consent_state !== "Recorded" ? `Consent ${t.consent_state.toLowerCase()}` : "",
             t.video_count < 3 ? "Featured videos missing" : "",
             t.rates_reviewed_at ? "Reviewed " + new Date(t.rates_reviewed_at).toLocaleDateString("en-IN") : "",
           ].filter(Boolean);
@@ -464,7 +501,7 @@ export function ReviewsPage() {
 }
 
 // ---------------------------------------------------------------- settings
-const PREFS = ["Profile review reminders", "Duplicate detection alerts", "Availability reminders"];
+const PREFS = ["Profile review reminders", "Duplicate detection alerts"];
 function readPrefs() {
   try {
     return JSON.parse(localStorage.getItem("ch-prefs") || "{}");

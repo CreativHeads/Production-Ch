@@ -16,7 +16,8 @@ module.exports = function (r) {
     const live = F.baseLive;
     res.json({
       total: await count(live()),
-      available: await count(F.applyAvailability(live(), "available")),
+      confirmed_casts: Number((await db("bookings").join("projects", "projects.id", "bookings.project_id").whereNull("projects.deleted_at")
+        .whereIn("projects.status", OPEN_PROJECT_STATUSES).where("bookings.status", "confirmed").count({ n: "bookings.id" }).first()).n),
       active_projects: Number((await db("projects").whereNull("deleted_at").whereIn("status", OPEN_PROJECT_STATUSES).count({ n: "*" }).first()).n),
       favorites: await count(live().whereExists(db("favorites").whereRaw("favorites.talent_id = talent.id").where("favorites.user_id", req.user.id))),
       consent_pending: await count(live().whereNotExists(

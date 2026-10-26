@@ -1,21 +1,13 @@
 // Drawers (side panels) of the studio UI, wired to the casting API.
 import { useEffect, useState } from "react";
 import { api } from "../lib/api";
-import { Field, FormError, ModalHead, Photo, Status, money, shortDate, useData, useStudio } from "./shared";
+import { Field, FormError, ModalHead, Photo, money, shortDate, useData, useStudio } from "./shared";
+
+// Ask before a delete; deleted records go to the trash.
+const sure = (what) => window.confirm(`Delete ${what}? This removes it from the workspace.`);
 
 const GENDERS = [["", "Not specified"], ["male", "Male"], ["female", "Female"]];
 const genderLabel = (g) => (GENDERS.find(([v]) => v === g) || [null, "Not specified"])[1];
-const today = () => new Date().toLocaleDateString("en-CA");
-
-async function tagIds(names, terms) {
-  const ids = [];
-  for (const name of names) {
-    let t = terms.find((x) => x.kind === "tag" && x.name.toLowerCase() === name.toLowerCase());
-    if (!t) t = await api.post("terms/", { kind: "tag", name });
-    ids.push(t.id);
-  }
-  return ids;
-}
 
 // ---------------------------------------------------------------- talent form
 export function TalentForm({ id }) {
@@ -32,7 +24,6 @@ export function TalentForm({ id }) {
   if (!t) return <><ModalHead title="Edit talent" /><div className="loading">Loading profile…</div></>;
 
   const cats = terms.filter((x) => x.kind === "category");
-  const consent = (t.consents || []).filter((c) => c.consent_type === "data_storage").pop();
   const guardian = (t.guardians || [])[0];
   const video = (i) => (t.featured_videos || []).find((v) => v.position === i + 1);
 
@@ -65,27 +56,15 @@ export function TalentForm({ id }) {
         if (acknowledge.length) fd.append("acknowledge_duplicates", JSON.stringify(acknowledge));
         talent = await api.post("talent/quick-add/", fd);
       }
-      const tags = String(f.get("tags")).split(",").map((s) => s.trim()).filter(Boolean);
       talent = await api.patch(`talent/${talent.id}/`, {
         ...(id ? core : {}), version: talent.version, email: String(f.get("email")).trim(), expected_fee: f.get("fee"), fee_type: "per_day",
-        tags: await tagIds(tags, terms), ...(acknowledge.length ? { acknowledge_duplicates: acknowledge } : {}),
+        ...(acknowledge.length ? { acknowledge_duplicates: acknowledge } : {}),
       });
       if (id && file && file.size) {
         const fd = new FormData();
         fd.append("photo", file);
         fd.append("make_primary", "1");
         await api.post(`talent/${talent.id}/photos/`, fd);
-      }
-      // Consent (data storage)
-      const wanted = f.get("consent");
-      const status = wanted === "Recorded" ? "granted" : wanted === "Withdrawn" ? "withdrawn" : "pending";
-      const current = (talent.consents || []).filter((c) => c.consent_type === "data_storage").pop();
-      if (current && current.status !== status && !(status === "pending" && current.status === "pending")) {
-        await api.patch(`consents/${current.id}/`, status === "granted" ? { status, obtained_on: current.obtained_on || today(), method: current.method || "other" } : { status });
-      } else if (!current && status !== "pending") {
-        const fd = new FormData();
-        Object.entries({ talent: talent.id, consent_type: "data_storage", status, obtained_on: today(), method: "other", given_by: talent.full_name }).forEach(([k, v]) => fd.append(k, v));
-        await api.post("consents/", fd);
       }
       // Guardian
       const gName = String(f.get("guardian")).trim();
@@ -102,17 +81,6 @@ export function TalentForm({ id }) {
         if (v && !url) await api.del(`videos/${v.id}/`);
         else if (v && url !== v.url) await api.patch(`videos/${v.id}/`, { url, platform: "" });
         else if (!v && url) await api.post("videos/", { talent: talent.id, position: i + 1, title: `Featured video ${i + 1}`, url });
-      }
-      // Availability: manual hold for the next 30 days, or clear current holds.
-      const avail = f.get("status");
-      if (avail && avail !== talent.availability) {
-        const holds = await api.get("availability/", { talent: talent.id, start: today() });
-        if (avail === "On hold") {
-          const end = new Date(Date.now() + 30 * 864e5);
-          await api.post("availability/", { talent: talent.id, start: new Date().toISOString(), end: end.toISOString(), kind: "tentative_hold", source: "other", notes: "On hold (set from profile)" });
-        } else if (avail === "Available") {
-          for (const h of holds.filter((x) => !x.is_booking && ["tentative_hold", "unavailable"].includes(x.kind))) await api.del(`availability/${h.id}/`);
-        }
       }
       refresh();
       toast("Talent profile saved");
@@ -149,27 +117,10 @@ export function TalentForm({ id }) {
           <Field label="Day rate (₹) *" name="fee" type="number" value={t.expected_fee ? Number(t.expected_fee) : ""} required min="0" />
           <Field label="Phone *" name="phone" type="tel" value={t.phone} required />
           <Field label="Email" name="email" type="email" value={t.email} />
-          <label className="field">
-            Availability
-            <select name="status" defaultValue={t.availability || "Available"}>
-              <option>Available</option>
-              <option>On hold</option>
-              {t.availability === "Booked" && <option disabled>Booked</option>}
-            </select>
-          </label>
           <label className="field full">
             Profile photo {id ? "" : "*"}
             <input name="photo" type="file" accept="image/jpeg,image/png,image/webp" required={!id} />
             <small>JPG, PNG or WebP. Photos are cropped and resized on the server.</small>
-          </label>
-          <Field label="Tags (comma separated)" name="tags" value={(t.tags || []).map((x) => x.name).join(", ")} />
-          <label className="field">
-            Consent
-            <select name="consent" defaultValue={consent ? (consent.status === "granted" ? "Recorded" : consent.status === "withdrawn" ? "Withdrawn" : "Pending") : "Pending"}>
-              <option>Pending</option>
-              <option>Recorded</option>
-              <option>Withdrawn</option>
-            </select>
           </label>
           <Field label="Guardian name (required under 18)" name="guardian" value={guardian?.name} />
           <Field label="Guardian contact (required under 18)" name="guardianPhone" value={guardian?.phone} />
@@ -205,15 +156,26 @@ export function TalentForm({ id }) {
 
 // ---------------------------------------------------------------- profile
 export function Profile({ id }) {
-  const { openDrawer, refresh, toast } = useStudio();
+  const { openDrawer, closeDrawer, refresh, toast } = useStudio();
   const [n, setN] = useState(0);
   const { data: t } = useData(() => api.get(`talent/${id}/`), [id, n]);
   const { data: casting } = useData(() => api.get(`talent/${id}/casting/`), [id, n]);
   const { data: notes } = useData(() => api.get("notes/", { talent: id, page_size: 100 }), [id, n]);
   if (!t) return <><ModalHead title="Talent profile" /><div className="loading">Loading profile…</div></>;
-  const consent = t.consent_state;
   const guardian = t.guardians[0];
   const photo = t.photos.find((p) => p.is_primary);
+
+  async function remove() {
+    if (!sure(t.full_name)) return;
+    try {
+      await api.del(`talent/${id}/`);
+      closeDrawer();
+      refresh();
+      toast("Talent deleted");
+    } catch (err) {
+      toast(err.message);
+    }
+  }
 
   async function addNote(e) {
     e.preventDefault();
@@ -234,20 +196,18 @@ export function Profile({ id }) {
           <div className="eyebrow">{t.categories.map((c) => c.name).join(" · ")}</div>
           <h1>{t.full_name}</h1>
           <p>{t.city} · {t.age ?? "—"} years · {genderLabel(t.gender)}</p>
-          <br />
-          <Status s={t.availability} />
         </div>
       </div>
       <div className="actions" style={{ marginBottom: 25 }}>
         <button className="primary" onClick={() => openDrawer(<ShortlistTalent id={id} />)}>＋ Add to shortlist</button>
         <button onClick={() => openDrawer(<TalentForm id={id} />)}>Edit profile</button>
         <button onClick={() => (t.phone ? openDrawer(<Contact t={t} />) : toast("Add a phone number in Edit profile to enable contact shortcuts"))}>↗ Contact</button>
+        <button onClick={remove}>Delete</button>
       </div>
       {t.booking_blockers.length > 0 && <div className="completed-notice" style={{ marginTop: 0, marginBottom: 20 }}>{t.booking_blockers.join(" ")}</div>}
       <div className="panel">
         <div className="detailgrid">
           <div><small>Day rate</small>{t.expected_fee ? money(t.expected_fee) : "Not added"}</div>
-          <div><small>Consent</small>{consent}</div>
           <div><small>Phone</small>{t.phone || "Not added"}</div>
           <div><small>Email</small>{t.email || "Not added"}</div>
           <div><small>Cast ID</small>{t.cast_id}</div>
@@ -408,8 +368,21 @@ function useProject(id) {
   return useData(() => api.get("studio/projects/", { scope: "all" }), [id]);
 }
 
+export async function deleteProject(p, { closeDrawer, refresh, toast }) {
+  if (!sure(`the project "${p.title}"`)) return;
+  try {
+    await api.del(`projects/${p.id}/`);
+    closeDrawer();
+    refresh();
+    toast("Project deleted");
+  } catch (err) {
+    toast(err.message);
+  }
+}
+
 export function ProjectDetail({ id }) {
-  const { openDrawer, refresh, toast } = useStudio();
+  const studio = useStudio();
+  const { openDrawer, refresh, toast } = studio;
   const { data } = useProject(id);
   const p = data?.projects.find((x) => x.id === id);
   if (!data) return <><ModalHead title="Project" /><div className="loading">Loading project…</div></>;
@@ -425,6 +398,7 @@ export function ProjectDetail({ id }) {
       <p>{p.client_name} · {p.production_type.replace(/_/g, " ")} · {p.shoot_start || "No shoot date"}</p>
       <div className="row">
         <button onClick={() => openDrawer(<ProjectForm project={p} />)}>Edit project</button>
+        <button onClick={() => deleteProject(p, studio)}>Delete project</button>
         <select aria-label="Project status" value={STUDIO_STATUSES.some(([v]) => v === p.status) ? p.status : "completed"} onChange={(e) => setStatus(e.target.value)}>
           {STUDIO_STATUSES.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
         </select>
@@ -529,7 +503,6 @@ export function CastForm({ projectId, roleId, talentId }) {
   const { data: all } = useData(() => api.get("talent/", { page_size: 200, sort: "name" }));
   const [fee, setFee] = useState(null);
   const [error, setError] = useState(null);
-  const [conflict, setConflict] = useState(null);
   const [busy, setBusy] = useState(false);
   const p = data?.projects.find((x) => x.id === projectId);
   const r = p?.roles.find((x) => x.id === roleId);
@@ -540,22 +513,17 @@ export function CastForm({ projectId, roleId, talentId }) {
   const chosen = talentId || r.confirmed?.talent_id || r.shortlist[0]?.talent_id || ordered[0]?.id;
   const feeFor = (tid) => (r.confirmed && r.confirmed.talent_id === tid ? Number(r.confirmed.agreed_fee) : Number(ordered.find((t) => t.id === tid)?.expected_fee || 0));
 
-  async function submit(e, override = false) {
-    e && e.preventDefault();
+  async function submit(e) {
+    e.preventDefault();
     const f = new FormData(document.getElementById("castForm"));
     const tid = Number(f.get("talent"));
     const agreed = f.get("fee");
     const note = String(f.get("reason") || "").trim();
-    if (override && !note) {
-      setError("Add a change note explaining why this booking overrides the clash.");
-      return;
-    }
     setBusy(true);
     setError(null);
-    const flags = { acknowledge_warnings: true, ...(override ? { override: true, override_reason: note } : {}) };
     try {
       if (r.confirmed && r.confirmed.talent_id === tid) {
-        await api.patch(`bookings/${r.confirmed.booking_id}/`, { agreed_fee: agreed, confirmation_notes: note, ...flags });
+        await api.patch(`bookings/${r.confirmed.booking_id}/`, { agreed_fee: agreed, confirmation_notes: note });
       } else {
         const add = await api.post("shortlist/add/", { role: r.id, talent_ids: [tid] }).catch((x) => x.body);
         if (add && add.errors && add.errors.length && !ids.has(tid)) throw new Error(add.errors[0].detail);
@@ -563,7 +531,7 @@ export function CastForm({ projectId, roleId, talentId }) {
         const end = p.shoot_end || start;
         const body = {
           role: r.id, talent: tid, status: "confirmed", agreed_fee: agreed, proposed_fee: agreed, confirmation_notes: note,
-          shoot_start: `${start}T09:00`, shoot_end: `${end}T18:00`, ...flags,
+          shoot_start: `${start}T09:00`, shoot_end: `${end}T18:00`,
         };
         // Book the new cast first, so a failed booking never leaves the role empty.
         await api.post("bookings/", body);
@@ -573,8 +541,7 @@ export function CastForm({ projectId, roleId, talentId }) {
       toast("Confirmed cast saved");
       openDrawer(<ProjectDetail id={projectId} />);
     } catch (err) {
-      if (err.code === "booking_conflict") setConflict(err.body);
-      else setError(err);
+      setError(err);
     } finally {
       setBusy(false);
     }
@@ -584,7 +551,7 @@ export function CastForm({ projectId, roleId, talentId }) {
     <>
       <ModalHead title={r.confirmed ? "Edit confirmed cast" : "Confirm cast"} />
       <p style={{ marginBottom: 20 }}>{p.title} · {r.name}</p>
-      <form id="castForm" onSubmit={(e) => submit(e)}>
+      <form id="castForm" onSubmit={submit}>
         <div className="formgrid">
           <label className="field full">
             Talent
@@ -602,16 +569,6 @@ export function CastForm({ projectId, roleId, talentId }) {
           </label>
         </div>
         <FormError error={error} />
-        {conflict && (
-          <div className="dupe">
-            <b>{conflict.detail}</b>
-            {(conflict.conflicts || []).map((c) => <div className="row" key={c.id}><div>{c.label}<small>{shortDate(c.start)} – {shortDate(c.end)}</small></div></div>)}
-            <div className="actions" style={{ marginTop: 10 }}>
-              <button type="button" onClick={() => setConflict(null)}>Choose someone else</button>
-              <button type="button" className="primary" onClick={() => submit(null, true)}>Override and confirm</button>
-            </div>
-          </div>
-        )}
         <div className="formactions">
           <button type="button" onClick={() => openDrawer(<ProjectDetail id={projectId} />)}>Back</button>
           <button className="primary" disabled={busy}>{busy ? "Saving…" : "Save confirmed cast"}</button>

@@ -519,17 +519,11 @@ async function onConsentChanged(consent, previousStatus, user) {
   }
 }
 
-// Reasons a talent cannot currently be booked (child safety + consent).
+// Reasons a talent cannot currently be booked: child artists need guardian details.
 async function bookingBlockers(talentOrId) {
   const t = typeof talentOrId === "object" && talentOrId._consents ? talentOrId : await loadForRules(talentOrId.id || talentOrId);
   const problems = [];
-  if (bool(t.consent_hold)) problems.push("Consent has been withdrawn for this talent.");
-  if (isChild(t)) {
-    if (!t._guardians.length) problems.push("Child artist: parent/guardian details are required.");
-    if (!t._consents.some((c) => c.consent_type === "guardian" && c.status === "granted")) problems.push("Child artist: guardian consent must be recorded before booking.");
-    if (!(t.date_of_birth || bool(t.age_verified))) problems.push("Child artist: date of birth or verified age is required.");
-    if (!bool(t.child_safety_verified)) problems.push("Child artist: child-safety restrictions and production compliance must be verified.");
-  }
+  if (isChild(t) && !t._guardians.length) problems.push("Child artist: parent/guardian details are required.");
   return problems;
 }
 

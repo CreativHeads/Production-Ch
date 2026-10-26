@@ -31,3 +31,4 @@ nav button em{background:#292929;color:#fff}
 button:disabled{opacity:.5;cursor:default}
 .header-right a.avatar{color:#fff}
 .rowperson img.mini{flex-shrink:0}
+.status.confirmed{color:#c9f5c0;background:#1b2e1be8;border-color:#3f6b3f;font-size:8px;padding:4px 7px}.project.is-confirmed{border-color:#2f4d2f}

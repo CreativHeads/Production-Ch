@@ -50,28 +50,16 @@ async function syncAvailability(booking, user) {
 }
 
 // Validate and persist a booking row (plain object; id present when updating).
-// - Overlapping confirmed bookings block unless override=true with a reason.
-// - Other overlaps (holds, unavailability) require acknowledge_warnings.
-// - Child artists need guardian consent etc. before confirmation.
-async function saveBooking(b, user, req, { override = false, override_reason = "", acknowledge_warnings = false } = {}) {
+// Talent can be booked on any date, including several shoots on the same day,
+// so overlapping bookings never block. Child artists still need guardian details.
+async function saveBooking(b, user, req) {
   if (!(b.shoot_end > b.shoot_start)) throw new Conflict("The shoot must end after it starts.", "invalid_dates");
   if (["tentative", "confirmed"].includes(b.status)) {
     const problems = await T.bookingBlockers(b.talent_id);
     if (problems.length) throw new Conflict("This talent can't be booked yet: " + problems.join(" "), "booking_blocked", { blockers: problems });
   }
-  const { blocking, warnings } = await findConflicts(b.talent_id, b.shoot_start, b.shoot_end, b.id);
+  const warnings = [];
   const confirming = ["confirmed", "completed"].includes(b.status);
-  if (confirming && blocking.length) {
-    if (!override) {
-      throw new Conflict("This talent already has a confirmed booking on these dates. Use an override with a reason to proceed.", "booking_conflict", {
-        conflicts: blocking, warnings, can_override: true,
-      });
-    }
-    if (!String(override_reason).trim()) throw new Conflict("Please give a reason for overriding the booking conflict.", "override_reason_required");
-    Object.assign(b, { conflict_override: true, override_reason: String(override_reason).trim(), override_by: user.id, override_at: nowDb() });
-  } else if ((warnings.length || blocking.length) && !acknowledge_warnings && !override) {
-    throw new Conflict("There are overlapping holds or unavailability on these dates.", "booking_warning", { conflicts: blocking, warnings, can_override: blocking.length > 0 });
-  }
   if (confirming && !b.confirmed_at) b.confirmed_at = nowDb();
   if (b.status === "completed" && b.outcome === "pending") b.outcome = "completed";
   if (b.status === "completed" && !b.completed_on) b.completed_on = localDate();
@@ -87,9 +75,6 @@ async function saveBooking(b, user, req, { override = false, override_reason = "
   }
   const saved = await db("bookings").where({ id: b.id }).first();
   await syncAvailability(saved, user);
-  if (bool(saved.conflict_override) && b.override_at) {
-    await audit.log(req || user, "booking.conflict_override", { entityType: "booking", entityId: saved.id, label: `Booking ${saved.id}`, message: saved.override_reason });
-  }
   return { booking: saved, warnings };
 }
 
@@ -100,7 +85,6 @@ async function recordEvent(entryId, action, user, fromValue = "", toValue = "", 
 
 function shortlistBlockers(t) {
   const problems = [];
-  if (bool(t.consent_hold)) problems.push("Consent has been withdrawn for this talent, so they can't be shortlisted.");
   if (bool(t.is_archived)) problems.push("This talent is archived. Restore them first.");
   if (t.status === "staging") problems.push("This talent is still in import staging. Add a primary photo to publish them first.");
   return problems;

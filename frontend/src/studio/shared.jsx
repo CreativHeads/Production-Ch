@@ -95,7 +95,7 @@ export function Heading({ eye, title, sub, children }) {
 }
 
 export function Status({ s }) {
-  return <span className={"status " + (s === "Booked" ? "booked" : s === "On hold" ? "hold" : "")}>{s}</span>;
+  return <span className={"status" + (s === "Confirmed" ? " confirmed" : "")}>{s}</span>;
 }
 
 export function ModalHead({ title }) {

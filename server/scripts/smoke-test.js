@@ -173,7 +173,7 @@ async function photo(color = "#888") {
   r = await call("PATCH", `consents/${consent.id}/`, { status: "withdrawn" });
   check("consent withdrawn", r.status === 200 && r.data.withdrawn_on, r);
   r = await call("GET", `talent/${t1.id}/`);
-  check("consent hold set", r.data.consent_hold && r.data.booking_blockers.length > 0, r.data.booking_blockers);
+  check("consent hold set", r.data.consent_hold, r.data);
   r = await call("GET", "retention-reviews/?status=open");
   check("retention review opened", r.data.count === 1, r.data);
   await call("PATCH", `retention-reviews/${r.data.results[0].id}/`, { status: "retained", resolution_notes: "Contract" });
@@ -209,20 +209,16 @@ async function photo(color = "#888") {
   r = await call("GET", `shortlist/${entry.id}/history/`);
   check("shortlist history", r.data.length >= 3, r.data);
 
-  // Need consent for t2 to book (require_consent_for_all only affects completeness, not booking)
+  // Holds and other bookings never block: talent can do several shoots on one day.
   r = await call("POST", "bookings/", { role: role.id, talent: t2.id, shoot_start: "2026-12-10T09:00", shoot_end: "2026-12-10T18:00", status: "confirmed" });
-  check("booking warns on unavailability", r.status === 409 && r.data.code === "booking_warning", r);
-  r = await call("POST", "bookings/", { role: role.id, talent: t2.id, shoot_start: "2026-12-10T09:00", shoot_end: "2026-12-10T18:00", status: "confirmed", acknowledge_warnings: true });
   check("booking created", r.status === 201 && r.data.proposed_fee === "9000.00" && r.data.status === "confirmed", r);
   const booking = r.data;
-  r = await call("POST", "bookings/", { role: role.id, talent: t2.id, shoot_start: "2026-12-10T12:00", shoot_end: "2026-12-10T20:00", status: "confirmed", acknowledge_warnings: true });
-  check("double booking blocked", r.status === 409 && r.data.code === "booking_conflict", r);
-  r = await call("POST", "bookings/", { role: role.id, talent: t2.id, shoot_start: "2026-12-10T12:00", shoot_end: "2026-12-10T20:00", status: "confirmed", override: true, override_reason: "Two units" });
-  check("override with reason", r.status === 201 && r.data.conflict_override, r);
+  r = await call("POST", "bookings/", { role: role.id, talent: t2.id, shoot_start: "2026-12-10T12:00", shoot_end: "2026-12-10T20:00", status: "confirmed" });
+  check("same-day second booking allowed", r.status === 201 && r.data.status === "confirmed", r);
   const b2 = r.data;
   r = await call("GET", `shortlist/${entry.id}/`);
   check("booking marks selected", r.data.status === "selected" && r.data.has_booking, r.data);
-  r = await call("PATCH", `bookings/${booking.id}/`, { agreed_fee: 9500, acknowledge_warnings: true, override: true, override_reason: "Two units" });
+  r = await call("PATCH", `bookings/${booking.id}/`, { agreed_fee: 9500 });
   check("booking update", r.status === 200 && r.data.agreed_fee === "9500.00", r);
   r = await call("DELETE", `bookings/${b2.id}/`);
   check("booking cancel", r.data.status === "cancelled", r);
