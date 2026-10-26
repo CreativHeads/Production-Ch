@@ -32,6 +32,11 @@ export function TalentForm({ id }) {
     const form = document.getElementById("talentForm");
     const f = new FormData(form);
     const age = Number(f.get("age"));
+    const categories = f.getAll("category").map(Number);
+    if (!categories.length) {
+      setError("Choose at least one category.");
+      return;
+    }
     if (age < 18 && (!String(f.get("guardian")).trim() || !String(f.get("guardianPhone")).trim())) {
       setError("Please add guardian name and contact for talent under 18.");
       return;
@@ -47,7 +52,7 @@ export function TalentForm({ id }) {
       let talent = t;
       const core = {
         full_name: String(f.get("name")).trim(), approx_age: age, gender: f.get("gender"), city: String(f.get("location")).trim(),
-        categories: [Number(f.get("category"))], phone: String(f.get("phone")).trim(),
+        categories, phone: String(f.get("phone")).trim(),
       };
       if (!id) {
         const fd = new FormData();
@@ -108,12 +113,17 @@ export function TalentForm({ id }) {
             </select>
           </label>
           <Field label="Location *" name="location" value={t.city} required />
-          <label className="field">
-            Category
-            <select name="category" defaultValue={t.categories?.[0]?.id} required>
-              {cats.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-            </select>
-          </label>
+          <fieldset className="field full checks">
+            <legend>Categories * <small>Choose all that apply</small></legend>
+            <div>
+              {cats.map((c) => (
+                <label key={c.id} className="check">
+                  <input type="checkbox" name="category" value={c.id} defaultChecked={(t.categories || []).some((x) => x.id === c.id)} />
+                  {c.name}
+                </label>
+              ))}
+            </div>
+          </fieldset>
           <Field label="Day rate (₹) *" name="fee" type="number" value={t.expected_fee ? Number(t.expected_fee) : ""} required min="0" />
           <Field label="Phone *" name="phone" type="tel" value={t.phone} required />
           <Field label="Email" name="email" type="email" value={t.email} />

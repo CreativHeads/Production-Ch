@@ -32,3 +32,4 @@ button:disabled{opacity:.5;cursor:default}
 .header-right a.avatar{color:#fff}
 .rowperson img.mini{flex-shrink:0}
 .status.confirmed{color:#c9f5c0;background:#1b2e1be8;border-color:#3f6b3f;font-size:8px;padding:4px 7px}.project.is-confirmed{border-color:#2f4d2f}
+.checks{border:0;padding:0;margin:0;min-width:0}.checks legend{padding:0;margin-bottom:8px}.checks legend small{display:inline;margin-left:6px}.checks>div{display:flex;flex-wrap:wrap;gap:8px}.check{display:inline-flex;align-items:center;gap:7px;border:1px solid #2b2b2b;border-radius:6px;padding:8px 11px;background:#101010;color:#ddd;font-size:12px;cursor:pointer}.check:has(input:checked){border-color:#fff;background:#1a1a1a}.check input{margin:0;accent-color:#fff}
