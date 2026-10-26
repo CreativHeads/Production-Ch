@@ -1,0 +1,57 @@
+# Casting Manager on the VPS: app + MariaDB (same engine as Hostinger) + Caddy (automatic HTTPS).
+# Run from /opt/casting-manager/deploy/vps:  docker compose up -d --build
+name: casting-manager
+
+services:
+  db:
+    image: mariadb:11.8
+    restart: unless-stopped
+    environment:
+      MARIADB_DATABASE: ${DB_NAME}
+      MARIADB_USER: ${DB_USER}
+      MARIADB_PASSWORD: ${DB_PASSWORD}
+      MARIADB_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
+    command: ["--character-set-server=utf8mb4", "--collation-server=utf8mb4_uca1400_ai_ci"]
+    volumes:
+      - dbdata:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 5s
+      retries: 30
+
+  app:
+    build:
+      context: ../..
+      dockerfile: deploy/vps/Dockerfile
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      DB_HOST: db
+      DB_PORT: "3306"
+      DATA_DIR: /data
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - appdata:/data
+
+  caddy:
+    image: caddy:2
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      SITE_DOMAIN: ${SITE_DOMAIN}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddydata:/data
+      - caddyconfig:/config
+    depends_on:
+      - app
+
+volumes:
+  dbdata:
+  appdata:
+  caddydata:
+  caddyconfig:

@@ -1,0 +1,9 @@
+**/node_modules
+**/.env
+.git
+backend
+server/public
+server-data
+server-test-data*
+casting-data
+*.zip
