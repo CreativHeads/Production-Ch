@@ -1,0 +1,24 @@
+.env
+deploy/backup/rclone.conf
+backend/data/
+backend/db.sqlite3
+backend/staticfiles/
+backend/.venv/
+backend/.ruff_cache/
+__pycache__/
+*.pyc
+frontend/node_modules/
+frontend/dist/
+
+# Node server: dependencies, the built frontend (rebuilt on deploy) and local data
+server/node_modules/
+server/public/
+server-data/
+server-test-data*/
+server-data.log
+server-test-data.log
+casting-data/
+
+# Secrets and local tooling
+ADMIN-LOGIN.txt
+.claude/

@@ -1,0 +1,13 @@
+{
+  "name": "creativheads-casting-manager",
+  "private": true,
+  "version": "2.0.0",
+  "description": "CreativHeads Casting Manager. Hostinger builds this from GitHub: the React frontend into server/public, then runs the Node.js server.",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "cd frontend && npm ci && npx vite build --outDir ../server/public --emptyOutDir && cd ../server && npm ci",
+    "start": "node server/src/index.js"
+  }
+}

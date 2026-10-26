@@ -1,0 +1,83 @@
+name: casting-manager
+
+x-backend-env: &backend-env
+  env_file: .env
+  environment:
+    DATABASE_URL: postgres://${POSTGRES_USER:-casting}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-casting}
+    DATA_DIR: /data
+    PROTECTED_MEDIA_ACCEL_PREFIX: /_protected
+    BACKUP_STATUS_FILE: /backups/status.json
+
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-casting}
+      POSTGRES_USER: ${POSTGRES_USER:-casting}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-casting}"]
+      interval: 5s
+      retries: 20
+
+  web:
+    build: ./backend
+    restart: unless-stopped
+    <<: *backend-env
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - appdata:/data
+      - backups:/backups:ro
+
+  # Hourly housekeeping: purge expired exports and stale imports
+  cron:
+    build: ./backend
+    restart: unless-stopped
+    <<: *backend-env
+    depends_on: [web]
+    volumes:
+      - appdata:/data
+    entrypoint: ["sh", "-c"]
+    command: ["while true; do python manage.py purge_exports; sleep 3600; done"]
+    environment:
+      RUN_MIGRATIONS: "0"
+      DATABASE_URL: postgres://${POSTGRES_USER:-casting}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-casting}
+      DATA_DIR: /data
+
+  proxy:
+    build: ./frontend
+    restart: unless-stopped
+    depends_on: [web]
+    ports:
+      - "${HTTP_PORT:-8080}:80"
+    volumes:
+      - appdata:/data:ro
+
+  # FR-022: daily encrypted DB dump + media sync, off-site copy, restore test.
+  # Backups live in their own volume and are never exposed through the app.
+  backup:
+    build: ./deploy/backup
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      PGHOST: db
+      PGUSER: ${POSTGRES_USER:-casting}
+      PGPASSWORD: ${POSTGRES_PASSWORD}
+      PGDATABASE: ${POSTGRES_DB:-casting}
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - backups:/backups
+      - appdata:/data:ro
+      - ./deploy/backup/rclone.conf:/config/rclone/rclone.conf:ro
+
+volumes:
+  pgdata:
+  appdata:
+  backups:

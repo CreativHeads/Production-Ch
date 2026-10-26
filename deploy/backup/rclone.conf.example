@@ -1,0 +1,8 @@
+# Copy to rclone.conf and set BACKUP_REMOTE=offsite:creativheads-casting-backups in .env
+# Any rclone backend works (Backblaze B2, S3, Google Drive, Hostinger object storage...).
+# Files are already AES-256 encrypted before upload.
+
+[offsite]
+type = b2
+account = YOUR_KEY_ID
+key = YOUR_APPLICATION_KEY
