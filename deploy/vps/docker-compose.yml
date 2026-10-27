@@ -34,6 +34,10 @@ services:
         condition: service_healthy
     volumes:
       - appdata:/data
+    networks:
+      default:
+        # Unique name for Caddy: other apps joined to this network may also be called "app".
+        aliases: [casting-app]
 
   caddy:
     image: caddy:2

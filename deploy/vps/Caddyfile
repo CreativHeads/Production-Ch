@@ -3,5 +3,11 @@
 	request_body {
 		max_size 100MB
 	}
-	reverse_proxy app:3000
+	reverse_proxy casting-app:3000
+}
+
+# Ad Reports (deployed from /opt/ad-reports, joined to this network as "ad-reports").
+ads.creativheads.com {
+	encode gzip
+	reverse_proxy ad-reports:3000
 }
