@@ -33,3 +33,52 @@ button:disabled{opacity:.5;cursor:default}
 .rowperson img.mini{flex-shrink:0}
 .status.confirmed{color:#c9f5c0;background:#1b2e1be8;border-color:#3f6b3f;font-size:8px;padding:4px 7px}.project.is-confirmed{border-color:#2f4d2f}
 .checks{border:0;padding:0;margin:0;min-width:0}.checks legend{padding:0;margin-bottom:8px}.checks legend small{display:inline;margin-left:6px}.checks>div{display:flex;flex-wrap:wrap;gap:8px}.check{display:inline-flex;align-items:center;gap:7px;border:1px solid #2b2b2b;border-radius:6px;padding:8px 11px;background:#101010;color:#ddd;font-size:12px;cursor:pointer}.check:has(input:checked){border-color:#fff;background:#1a1a1a}.check input{margin:0;accent-color:#fff}
+/* Responsive polish: laptop and phone */
+.status{align-self:flex-start;white-space:nowrap;flex-shrink:0}
+aside{overflow-y:auto}
+.menu-backdrop{display:none}
+@media(max-height:820px){aside{padding-top:22px;padding-bottom:18px}.workspace{margin:20px 0}nav button{padding:10px 13px;margin:2px 0}.note{display:none}}
+@media(max-width:800px){
+  aside{z-index:30;box-shadow:0 0 40px #000}
+  .menu .menu-backdrop{display:block;position:fixed;inset:0;background:#000a;z-index:25}
+  header{height:62px}
+  header>span{font-size:0;min-width:0;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+  header>span b{font-size:14px;color:#eee}
+  header i{display:none}
+  .header-right button{font-size:18px;padding:6px}
+  h1{font-size:24px;letter-spacing:-.8px}
+  .titlebar{margin-bottom:20px}
+  .titlebar p{font-size:13px}
+  .stats{margin-bottom:22px}
+  .stat{padding:13px 14px}
+  .stat strong{font-size:22px;margin-top:6px}
+  .stat small{display:block;margin:4px 0 0;font-size:10px}
+  .tabs{overflow-x:auto;scrollbar-width:none;gap:18px}
+  .tabs button{white-space:nowrap}
+  .toolbar{flex-wrap:wrap;gap:8px}
+  .toolbar .search{flex:1 1 100%;min-width:0}
+  .toolbar select{flex:1 1 0;min-width:0;padding:10px 8px}
+  .toolbar>button{flex:1 1 100%}
+  .results{flex-wrap:wrap;gap:8px;align-items:center}
+  .row button{white-space:nowrap}
+  .projectgrid{gap:14px}
+  .project{padding:18px}
+  .projecticon{margin-bottom:18px}
+  .drawer{padding:22px 18px}
+}
+@media(max-width:600px){
+  .row{flex-wrap:wrap}
+  .row>.rowperson{flex:1 1 100%;min-width:0}
+  .row>.rowperson+*{margin-left:48px}
+  .row>.actions{flex-wrap:wrap}
+  .formgrid{grid-template-columns:1fr}
+  .field.full{grid-column:auto}
+  .detailgrid{grid-template-columns:1fr 1fr;gap:14px}
+  .profilehero{gap:16px}
+  .profilehero img,.profilehero .noimg{width:90px;height:115px}
+  .settingsnav button{flex:1 1 auto}
+  .grid{gap:10px}
+  .portrait{height:200px}
+  .cardfoot{flex-wrap:wrap;gap:6px}
+}
+.project .actions{flex-wrap:wrap}.project .actions button{flex:1 1 auto;white-space:nowrap;padding:9px 10px;font-size:12px}

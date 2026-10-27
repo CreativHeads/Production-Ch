@@ -76,6 +76,7 @@ function Shell() {
           <span>Signed in as {s.user.username}</span>
         </footer>
       </div>
+      <div className="menu-backdrop" onClick={() => s.setMenu(false)} />
       <div id="overlay" hidden={!s.drawer} onClick={(e) => e.target.id === "overlay" && s.closeDrawer()}>
         {s.drawer && <section className="drawer" role="dialog" aria-modal="true">{s.drawer}</section>}
       </div>
