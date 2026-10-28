@@ -17,7 +17,7 @@ function shape(row) {
     default_currency: row.default_currency || "INR",
     default_country_code: row.default_country_code || "91",
     whatsapp_template: row.whatsapp_template || "",
-    studio_name: row.studio_name || "CreativHeads Studio",
+    studio_name: row.studio_name || "TakeBoard Studio",
     studio_location: row.studio_location || "Kottakkal, Kerala",
     updated_at: row.updated_at,
   };

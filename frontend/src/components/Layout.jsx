@@ -49,17 +49,13 @@ export default function Layout({ children }) {
   return (
     <div className={cx("shell", open && "nav-open")}>
       <aside className="sidebar" aria-label="Main navigation">
-        <Link to="/" className="brand" onClick={() => setOpen(false)}>
-          <span className="brand-mark">ch</span>
-          <span className="brand-text">
-            <strong>creativheads</strong>
-            <small>Casting manager</small>
-          </span>
+        <Link to="/" className="brand" onClick={() => setOpen(false)} title="TakeBoard by CreativHeads">
+          <img src="/Takeboard White_Logo.png" alt="TakeBoard by CreativHeads" className="brand-logo" />
         </Link>
         <div className="workspace">
-          <span className="ws-avatar">C</span>
+          <span className="ws-avatar">T</span>
           <span>
-            <strong>CreativHeads Studio</strong>
+            <strong>TakeBoard Studio</strong>
             <small>Internal workspace</small>
           </span>
           <Icon name="chevron" size={14} />
@@ -126,7 +122,7 @@ export default function Layout({ children }) {
           {children}
         </main>
         <footer className="app-footer">
-          <span>CREATIVHEADS CASTING</span>
+          <span>TAKEBOARD BY CREATIVHEADS</span>
           <span>Good stories begin with the right people.</span>
           <span>Internal workspace</span>
         </footer>

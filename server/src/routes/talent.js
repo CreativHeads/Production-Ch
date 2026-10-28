@@ -17,6 +17,7 @@ const AUDITED_FIELDS = [
   "phone", "alt_phone", "whatsapp_phone", "email", "instagram", "address", "city", "district", "state",
   "expected_fee", "expected_fee_max", "fee_unknown", "fee_type", "fee_negotiable", "travel_willingness",
   "experience_level", "child_safety_verified", "age_verified", "internal_notes",
+  "talent_type", "social_reach", "influencer_niche", "primary_platform",
 ];
 
 // field -> [type, options]
@@ -30,6 +31,7 @@ const FIELDS = {
   fee_unknown: ["bool"], fee_type: ["choice", "fee_type"], currency: ["str", 3], fee_negotiable: ["nbool"], fee_notes: ["str", 255],
   travel_willingness: ["choice", "travel"], has_passport: ["nbool"], travel_notes: ["text"], internal_notes: ["text"],
   child_safety_verified: ["bool"], child_safety_notes: ["text"],
+  talent_type: ["str", 20], social_reach: ["str", 80], influencer_niche: ["str", 120], primary_platform: ["str", 40],
 };
 const TEXT_FIELDS = Object.entries(FIELDS).filter(([, [t]]) => t === "text").map(([k]) => k);
 
@@ -299,7 +301,7 @@ module.exports = function (r) {
     if (!req.file) errors.photo = ["A primary profile photo is required."];
     if (Object.keys(errors).length) throw new ValidationError(errors);
     const payload = { full_name: name, phone, city, district: b.district || "", gender: b.gender || "", instagram: b.instagram || "", categories: cats };
-    for (const opt of ["playing_age_min", "playing_age_max", "approx_age"]) if (b[opt] !== undefined && b[opt] !== "") payload[opt] = b[opt];
+    for (const opt of ["playing_age_min", "playing_age_max", "approx_age", "talent_type", "social_reach", "influencer_niche", "primary_platform"]) if (b[opt] !== undefined && b[opt] !== "") payload[opt] = b[opt];
     const v = await validateWrite(payload, null);
     await checkDuplicatesOrRaise(v.data, b.acknowledge_duplicates);
     // Validate the photo before anything is written.

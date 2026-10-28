@@ -19,7 +19,7 @@ export default function Projects() {
 
   return (
     <div>
-      <PageHead title="Casting projects" actions={<Button variant="primary" icon="plus" onClick={() => setCreating(true)}>New project</Button>} />
+      <PageHead title="Projects" actions={<Button variant="primary" icon="plus" onClick={() => setCreating(true)}>New project</Button>} />
       <div className="dir-toolbar">
         <form className="dir-search" onSubmit={(e) => (e.preventDefault(), set({ q }))}>
           <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search title, client, code, location" aria-label="Search projects" />

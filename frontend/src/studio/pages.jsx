@@ -1,7 +1,6 @@
-// The eight studio pages, wired to the casting API.
 import { useEffect, useState } from "react";
 import { api } from "../lib/api";
-import { CastForm, Profile, ProjectDetail, ProjectForm, ShortlistTalent, TalentForm, deleteProject } from "./drawers";
+import { CastForm, InfluencerForm, Profile, ProjectDetail, ProjectForm, ShortlistTalent, TalentForm, deleteProject } from "./drawers";
 import { Field, FormError, Heading, Photo, Status, initials, money, pad2, shortDate, useData, useStudio } from "./shared";
 
 async function exportTalent(format, filters, toast) {
@@ -48,24 +47,30 @@ export function Card({ t, onFav }) {
       toast(err.message);
     }
   };
-  const tags = [...t.tags.map((x) => x.name), ...t.languages].slice(0, 3);
+  const isInf = t.talent_type === "influencer";
+  const tags = isInf
+    ? [t.influencer_niche, t.primary_platform, ...t.languages].filter(Boolean).slice(0, 3)
+    : [...t.tags.map((x) => x.name), ...t.languages].slice(0, 3);
   const open = () => openDrawer(<Profile id={t.id} />);
   return (
     <article className="talent">
       <div className={"portrait" + (t.photo ? "" : " noimg")} onClick={open}>
         {t.photo ? <img src={t.photo.card} alt={t.full_name} loading="lazy" /> : initials(t.full_name)}
         <button className={"heart" + (t.is_favorite ? " saved" : "")} aria-label={`Favorite ${t.full_name}`} onClick={fav}>{t.is_favorite ? "♥" : "♡"}</button>
-        <span className="image-label">{(t.categories[0]?.name || "").toUpperCase()}</span>
+        <span className="image-label">{isInf && t.social_reach ? `✦ ${t.social_reach.toUpperCase()}` : (t.categories[0]?.name || "").toUpperCase()}</span>
       </div>
       <div className="talentinfo">
         <div className="talentname" onClick={open}>
-          <h3>{t.full_name}</h3>
+          <div>
+            <h3>{t.full_name}</h3>
+            {t.instagram && <small style={{ color: "#aaa", fontSize: 11, display: "block", marginTop: 2 }}>@{t.instagram.replace(/^@/, "")}</small>}
+          </div>
           <span>↗</span>
         </div>
-        <div className="meta">⌖ {t.city} &nbsp;·&nbsp; {t.age ?? "—"} years</div>
+        <div className="meta">⌖ {t.city} &nbsp;·&nbsp; {isInf && t.social_reach ? t.social_reach : `${t.age ?? "—"} years`}</div>
         <div className="tags">{tags.map((x) => <span className="tag" key={x}>{x}</span>)}</div>
         <div className="cardfoot">
-          <span>{t.expected_fee ? money(t.expected_fee) : "Fee TBC"} <small>/ day</small></span>
+          <span>{t.expected_fee ? money(t.expected_fee) : "Fee TBC"} <small>{isInf ? "/ post" : "/ day"}</small></span>
           <button onClick={() => openDrawer(<ShortlistTalent id={t.id} />)}>＋ Shortlist</button>
         </div>
       </div>
@@ -73,7 +78,7 @@ export function Card({ t, onFav }) {
   );
 }
 
-// ---------------------------------------------------------------- talent directory
+// ---------------------------------------------------------------- talent directory (casts)
 export function TalentPage() {
   const { openDrawer, toast, talentQuery, setTalentQuery, version } = useStudio();
   const [tab, setTab] = useState("all");
@@ -102,6 +107,7 @@ export function TalentPage() {
   }, [query]);
 
   const params = {
+    type: "cast",
     q: debounced, category: cat, gender, city: loc, actual_age_min: minAge, actual_age_max: maxAge, fee_max: maxFee,
     favorite: tab === "fav" ? "1" : "", sort: tab === "recent" || sort === "recent" ? "newest" : sort === "fee" ? "fee" : "name",
     page_size: tab === "recent" ? 4 : 200,
@@ -109,7 +115,7 @@ export function TalentPage() {
   useEffect(() => {
     let alive = true;
     api.get("talent/", params).then((d) => alive && setRows(d)).catch((e) => toast(e.message));
-    Promise.all([api.get("talent/", { page_size: 1 }), api.get("talent/", { page_size: 1, favorite: "1" })])
+    Promise.all([api.get("talent/", { type: "cast", page_size: 1 }), api.get("talent/", { type: "cast", page_size: 1, favorite: "1" })])
       .then(([a, f]) => alive && setCounts({ all: a.count, fav: f.count }))
       .catch(() => {});
     return () => {
@@ -132,7 +138,7 @@ export function TalentPage() {
       </Heading>
       <Stats />
       <div className="tabs">
-        <button className={tab === "all" ? "on" : ""} onClick={() => setTab("all")}>All talent <span>{counts.all}</span></button>
+        <button className={tab === "all" ? "on" : ""} onClick={() => setTab("all")}>All casts <span>{counts.all}</span></button>
         <button className={tab === "fav" ? "on" : ""} onClick={() => setTab("fav")}>Favorites <span>{counts.fav}</span></button>
         <button className={tab === "recent" ? "on" : ""} onClick={() => setTab("recent")}>Recently added</button>
       </div>
@@ -184,6 +190,132 @@ export function TalentPage() {
   );
 }
 
+// ---------------------------------------------------------------- influencer directory
+export function InfluencersPage() {
+  const { openDrawer, toast, talentQuery, setTalentQuery, version } = useStudio();
+  const [tab, setTab] = useState("all");
+  const [query, setQuery] = useState(talentQuery || "");
+  const [debounced, setDebounced] = useState(query);
+  const [platform, setPlatform] = useState("");
+  const [niche, setNiche] = useState("");
+  const [loc, setLoc] = useState("");
+  const [sort, setSort] = useState("recent");
+  const [filters, setFilters] = useState(false);
+  const [maxFee, setMaxFee] = useState("");
+  const [rows, setRows] = useState(null);
+  const [counts, setCounts] = useState({ all: 0, fav: 0 });
+  const { data: places } = useData(() => api.get("talent/cities/"));
+
+  useEffect(() => {
+    if (talentQuery) setTalentQuery("");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  useEffect(() => {
+    const t = setTimeout(() => setDebounced(query), 250);
+    return () => clearTimeout(t);
+  }, [query]);
+
+  const params = {
+    type: "influencer",
+    q: debounced, platform, niche, city: loc, fee_max: maxFee,
+    favorite: tab === "fav" ? "1" : "", sort: tab === "recent" || sort === "recent" ? "newest" : sort === "fee" ? "fee" : "name",
+    page_size: tab === "recent" ? 4 : 200,
+  };
+  useEffect(() => {
+    let alive = true;
+    api.get("talent/", params).then((d) => alive && setRows(d)).catch((e) => toast(e.message));
+    Promise.all([
+      api.get("talent/", { type: "influencer", page_size: 1 }),
+      api.get("talent/", { type: "influencer", page_size: 1, favorite: "1" }),
+    ])
+      .then(([a, f]) => alive && setCounts({ all: a.count, fav: f.count }))
+      .catch(() => {});
+    return () => {
+      alive = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [JSON.stringify(params), version]);
+
+  const reset = () => {
+    setMaxFee(""); setQuery(""); setPlatform(""); setNiche(""); setLoc("");
+  };
+  const exportFilters = { ...params, page_size: undefined };
+  const shown = rows ? rows.results : [];
+
+  return (
+    <>
+      <Heading eye="CREATORS, REACH & DIGITAL STARS." title="Influencer directory" sub="Social creators, vloggers, and digital voices for brand campaigns.">
+        <button onClick={() => exportTalent("xlsx", exportFilters, toast)}>↥ &nbsp; Export</button>
+        <button className="primary" onClick={() => openDrawer(<InfluencerForm />)}>＋ &nbsp; Add influencer</button>
+      </Heading>
+      <div className="tabs">
+        <button className={tab === "all" ? "on" : ""} onClick={() => setTab("all")}>All influencers <span>{counts.all}</span></button>
+        <button className={tab === "fav" ? "on" : ""} onClick={() => setTab("fav")}>Favorites <span>{counts.fav}</span></button>
+        <button className={tab === "recent" ? "on" : ""} onClick={() => setTab("recent")}>Recently added</button>
+      </div>
+      <div className="toolbar">
+        <div className="search">
+          <input aria-label="Search influencers" placeholder="Search creators by name, @handle, niche, or city…" value={query} onChange={(e) => setQuery(e.target.value)} />
+        </div>
+        <select aria-label="Platform" value={platform} onChange={(e) => setPlatform(e.target.value)}>
+          <option value="">All platforms</option>
+          <option value="Instagram">Instagram</option>
+          <option value="YouTube">YouTube</option>
+          <option value="TikTok">TikTok</option>
+          <option value="Facebook">Facebook</option>
+          <option value="LinkedIn">LinkedIn</option>
+        </select>
+        <select aria-label="Niche" value={niche} onChange={(e) => setNiche(e.target.value)}>
+          <option value="">All niches</option>
+          <option value="Lifestyle">Lifestyle</option>
+          <option value="Fashion">Fashion</option>
+          <option value="Beauty">Beauty & Makeup</option>
+          <option value="Tech">Tech & Gadgets</option>
+          <option value="Food">Food & Culinary</option>
+          <option value="Fitness">Fitness & Health</option>
+          <option value="Travel">Travel & Vlogs</option>
+          <option value="Comedy">Comedy & Skits</option>
+          <option value="Parenting">Parenting</option>
+          <option value="Entertainment">Entertainment</option>
+        </select>
+        <select aria-label="Location" value={loc} onChange={(e) => setLoc(e.target.value)}>
+          <option value="">All locations</option>
+          {(places?.cities || []).map((c) => <option key={c}>{c}</option>)}
+        </select>
+        <button onClick={() => setFilters(!filters)}>☷ &nbsp; Filters {filters ? "−" : "+"}</button>
+      </div>
+      {filters && (
+        <div className="filterpanel">
+          <label>Max collab fee ₹<input type="number" value={maxFee} onChange={(e) => setMaxFee(e.target.value)} /></label>
+          <button onClick={reset}>Reset filters</button>
+        </div>
+      )}
+      <div className="results">
+        <span>Showing <b>{rows ? rows.count : 0} influencers</b> in your network</span>
+        <span>
+          Sort by{" "}
+          <select aria-label="Sort influencers" value={sort} onChange={(e) => setSort(e.target.value)}>
+            <option value="recent">Recently added</option>
+            <option value="name">Name A–Z</option>
+            <option value="fee">Lowest collab fee</option>
+          </select>
+        </span>
+      </div>
+      <div className="grid">
+        {rows && shown.map((t) => <Card key={t.id} t={t} />)}
+        {rows && shown.length === 0 && (
+          <div className="empty">
+            No influencers found.
+            <br />
+            <button className="primary" style={{ marginTop: 14 }} onClick={() => openDrawer(<InfluencerForm />)}>＋ Add your first influencer</button>
+          </div>
+        )}
+        {!rows && <div className="empty">Loading your influencer directory…</div>}
+      </div>
+    </>
+  );
+}
+
 // ---------------------------------------------------------------- overview
 export function OverviewPage() {
   const { openDrawer, go } = useStudio();
@@ -191,13 +323,13 @@ export function OverviewPage() {
   const { data: favs } = useData(() => api.get("talent/", { favorite: "1", page_size: 4, sort: "name" }));
   return (
     <>
-      <Heading eye="CREATIVHEADS STUDIO" title="Good stories start with good people." sub="Your casting workspace, at a glance.">
+      <Heading eye="TAKEBOARD BY CREATIVHEADS" title="Good stories start with good people." sub="Your casting workspace, at a glance.">
         <button className="primary" onClick={() => openDrawer(<TalentForm />)}>＋ Quick Add talent</button>
       </Heading>
       <Stats />
       <div className="cols">
         <div className="panel">
-          <h2>In production <small>Your active casting projects</small></h2>
+          <h2>In production <small>Your active projects</small></h2>
           {projects && projects.projects.length === 0 && <p>No active projects yet.</p>}
           {projects && projects.projects.map((p) => (
             <div className="row" key={p.id} onClick={() => openDrawer(<ProjectDetail id={p.id} />)} style={{ cursor: "pointer" }}>
@@ -232,7 +364,7 @@ export function ProjectsPage() {
   const activeCount = data ? data.projects.filter((p) => !p.is_closed).length : 0;
   return (
     <>
-      <Heading eye="FROM BRIEF TO BRILLIANT." title="Casting projects" sub="Every role, every confirmed face, every story.">
+      <Heading eye="FROM BRIEF TO BRILLIANT." title="Projects" sub="Every role, every confirmed face, every story.">
         <button className="primary" onClick={() => openDrawer(<ProjectForm />)}>＋ New project</button>
       </Heading>
       <div className="tabs">
@@ -295,7 +427,7 @@ export function ShortlistsPage() {
         )}
       </Heading>
       {!data && <div className="empty">Loading shortlists…</div>}
-      {data && !p && <div className="empty">No active projects to shortlist.<br />Completed projects are available in Casting projects → Completed.</div>}
+      {data && !p && <div className="empty">No active projects to shortlist.<br />Completed projects are available in Projects → Completed.</div>}
       {p && p.roles.length === 0 && (
         <div className="empty">This project has no roles yet.<br /><button style={{ marginTop: 15 }} onClick={() => openDrawer(<ProjectDetail id={p.id} />)}>Add role requirements</button></div>
       )}
@@ -595,7 +727,7 @@ export function SettingsPage() {
           <h2>Studio details</h2>
           <form onSubmit={saveWorkspace} key={settings?.updated_at}>
             <div className="formgrid">
-              <Field label="Workspace name" name="name" value={settings?.studio_name || "CreativHeads Studio"} />
+              <Field label="Workspace name" name="name" value={settings?.studio_name || "TakeBoard Studio"} />
               <Field label="Location" name="location" value={settings?.studio_location || "Kottakkal, Kerala"} />
               <Field label="Default currency" name="currency" value="INR — Indian Rupee" readOnly />
               <Field label="Timezone" name="timezone" value="Asia/Kolkata" readOnly />

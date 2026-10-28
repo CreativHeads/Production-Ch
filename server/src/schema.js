@@ -45,7 +45,7 @@ const TABLES = {
     t.string("default_currency", 3).defaultTo("INR");
     t.string("default_country_code", 4).defaultTo("91");
     t.text("whatsapp_template");
-    t.string("studio_name", 120).defaultTo("CreativHeads Studio");
+    t.string("studio_name", 120).defaultTo("TakeBoard Studio");
     t.string("studio_location", 120).defaultTo("Kottakkal, Kerala");
     t.string("updated_at", DT);
   },
@@ -85,6 +85,10 @@ const TABLES = {
   talent(t) {
     t.increments("id");
     t.string("cast_id", 20).unique();
+    t.string("talent_type", 20).defaultTo("cast").index();
+    t.string("social_reach", 80).defaultTo("");
+    t.string("influencer_niche", 120).defaultTo("");
+    t.string("primary_platform", 40).defaultTo("Instagram");
     t.integer("version").defaultTo(1);
     t.string("status", 16).defaultTo("needs_details").index();
     t.boolean("is_archived").defaultTo(false).index();
@@ -422,8 +426,8 @@ function link(t, a, b) {
 
 // ---------------------------------------------------------------- seed data
 const CATEGORIES = [
-  ["Actor", ""], ["Model", ""], ["Child Artist", "child"], ["Senior Artist", ""], ["Supporting Artist", ""],
-  ["Extra", ""], ["Voice Artist", ""], ["Presenter", ""], ["Content Creator", ""], ["Dancer", ""], ["Anchor", ""],
+  ["Actor", ""], ["Model", ""], ["Influencer", "influencer"], ["Content Creator", "creator"], ["Child Artist", "child"], ["Senior Artist", ""], ["Supporting Artist", ""],
+  ["Extra", ""], ["Voice Artist", ""], ["Presenter", ""], ["Dancer", ""], ["Anchor", ""],
 ];
 const TAGS = [
   "Father Role", "Mother Role", "Corporate Look", "Comedy", "Emotional Acting", "Strong Dialogue Delivery",
@@ -455,7 +459,7 @@ async function seedDefaults() {
     await db("system_settings").insert({
       id: 1,
       completeness_fields: toJson(DEFAULT_COMPLETENESS_FIELDS),
-      whatsapp_template: "Hi {first_name}, this is {staff_name} from CreativHeads. We have a casting opportunity you may be interested in.",
+      whatsapp_template: "Hi {first_name}, this is {staff_name} from TakeBoard by CreativHeads. We have a casting opportunity you may be interested in.",
       updated_at: now,
     });
   }
@@ -480,8 +484,12 @@ async function seedDefaults() {
 
 // Columns added after the first release; created on existing databases.
 const ADDED_COLUMNS = [
-  ["system_settings", "studio_name", (t) => t.string("studio_name", 120).defaultTo("CreativHeads Studio")],
+  ["system_settings", "studio_name", (t) => t.string("studio_name", 120).defaultTo("TakeBoard Studio")],
   ["system_settings", "studio_location", (t) => t.string("studio_location", 120).defaultTo("Kottakkal, Kerala")],
+  ["talent", "talent_type", (t) => t.string("talent_type", 20).defaultTo("cast").index()],
+  ["talent", "social_reach", (t) => t.string("social_reach", 80).defaultTo("")],
+  ["talent", "influencer_niche", (t) => t.string("influencer_niche", 120).defaultTo("")],
+  ["talent", "primary_platform", (t) => t.string("primary_platform", 40).defaultTo("Instagram")],
 ];
 
 async function ensureSchema() {

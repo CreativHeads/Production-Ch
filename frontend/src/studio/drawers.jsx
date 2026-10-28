@@ -164,6 +164,175 @@ export function TalentForm({ id }) {
   );
 }
 
+// ---------------------------------------------------------------- influencer form
+export function InfluencerForm({ id }) {
+  const { closeDrawer, refresh, toast, openDrawer } = useStudio();
+  const [t, setT] = useState(id ? null : {});
+  const [terms, setTerms] = useState([]);
+  const [error, setError] = useState(null);
+  const [dupes, setDupes] = useState(null);
+  const [busy, setBusy] = useState(false);
+  useEffect(() => {
+    api.get("terms/").then(setTerms);
+    if (id) api.get(`talent/${id}/`).then(setT);
+  }, [id]);
+  if (!t) return <><ModalHead title="Edit influencer" /><div className="loading">Loading profile…</div></>;
+
+  const influencerTerm = terms.find((x) => x.kind === "category" && (x.slug === "influencer" || x.slug === "content-creator"));
+  const categories = influencerTerm ? [influencerTerm.id] : [59];
+  const video = (i) => (t.featured_videos || []).find((v) => v.position === i + 1);
+
+  async function submit(e, acknowledge = []) {
+    e && e.preventDefault();
+    const form = document.getElementById("influencerForm");
+    const f = new FormData(form);
+    const age = Number(f.get("age")) || 25;
+    const file = f.get("photo");
+    if (file && file.size > 25e6) {
+      setError("Please select a photo smaller than 25 MB.");
+      return;
+    }
+    const handle = String(f.get("instagram") || "").trim().replace(/^@/, "");
+    if (!handle) {
+      setError("Please provide a social handle or Instagram username.");
+      return;
+    }
+    setBusy(true);
+    setError(null);
+    try {
+      let talent = t;
+      const core = {
+        full_name: String(f.get("name")).trim(),
+        approx_age: age,
+        gender: f.get("gender"),
+        city: String(f.get("location")).trim(),
+        categories,
+        phone: String(f.get("phone")).trim(),
+        instagram: handle,
+        talent_type: "influencer",
+        social_reach: String(f.get("reach")).trim(),
+        influencer_niche: String(f.get("niche")).trim(),
+        primary_platform: String(f.get("platform")).trim() || "Instagram",
+      };
+      if (!id) {
+        const fd = new FormData();
+        Object.entries(core).forEach(([k, v]) => fd.append(k, k === "categories" ? JSON.stringify(v) : v));
+        fd.append("photo", file);
+        if (acknowledge.length) fd.append("acknowledge_duplicates", JSON.stringify(acknowledge));
+        talent = await api.post("talent/quick-add/", fd);
+      }
+      talent = await api.patch(`talent/${talent.id}/`, {
+        ...(id ? core : {}),
+        version: talent.version,
+        email: String(f.get("email")).trim(),
+        expected_fee: f.get("fee"),
+        fee_type: "per_post",
+        talent_type: "influencer",
+        social_reach: String(f.get("reach")).trim(),
+        influencer_niche: String(f.get("niche")).trim(),
+        primary_platform: String(f.get("platform")).trim() || "Instagram",
+        instagram: handle,
+        ...(acknowledge.length ? { acknowledge_duplicates: acknowledge } : {}),
+      });
+      if (id && file && file.size) {
+        const fd = new FormData();
+        fd.append("photo", file);
+        fd.append("make_primary", "1");
+        await api.post(`talent/${talent.id}/photos/`, fd);
+      }
+      for (let i = 0; i < 3; i++) {
+        const url = String(f.get("video" + i)).trim();
+        const v = (talent.featured_videos || []).find((x) => x.position === i + 1);
+        if (v && !url) await api.del(`videos/${v.id}/`);
+        else if (v && url !== v.url) await api.patch(`videos/${v.id}/`, { url, platform: "" });
+        else if (!v && url) await api.post("videos/", { talent: talent.id, position: i + 1, title: `Featured reel ${i + 1}`, url });
+      }
+      refresh();
+      toast("Influencer profile saved");
+      openDrawer(<Profile id={talent.id} />);
+    } catch (err) {
+      if (err.code === "duplicate") setDupes(err.body.duplicates || []);
+      else setError(err);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <>
+      <ModalHead title={id ? "Edit influencer" : "Add an influencer / creator"} />
+      <p style={{ marginBottom: 25 }}>Add digital creators, influencers, and voices to your network.</p>
+      <form id="influencerForm" onSubmit={(e) => submit(e)}>
+        <div className="formgrid">
+          <Field label="Creator / Full name *" name="name" value={t.full_name} required placeholder="e.g. Anjali Menon" />
+          <Field label="Social handle / Instagram *" name="instagram" value={t.instagram ? `@${t.instagram.replace(/^@/, '')}` : ""} required placeholder="@username" />
+          <label className="field">
+            Primary platform *
+            <select name="platform" defaultValue={t.primary_platform || "Instagram"}>
+              <option value="Instagram">Instagram</option>
+              <option value="YouTube">YouTube</option>
+              <option value="TikTok">TikTok</option>
+              <option value="Facebook">Facebook</option>
+              <option value="LinkedIn">LinkedIn</option>
+            </select>
+          </label>
+          <Field label="Audience reach / Followers *" name="reach" value={t.social_reach} required placeholder="e.g. 150K followers, 500K subs" />
+          <label className="field">
+            Content niche *
+            <select name="niche" defaultValue={t.influencer_niche || "Lifestyle"}>
+              <option value="Lifestyle">Lifestyle</option>
+              <option value="Fashion">Fashion & Style</option>
+              <option value="Beauty">Beauty & Makeup</option>
+              <option value="Tech">Tech & Gadgets</option>
+              <option value="Food">Food & Culinary</option>
+              <option value="Fitness">Fitness & Wellness</option>
+              <option value="Travel">Travel & Vlogs</option>
+              <option value="Comedy">Comedy & Skits</option>
+              <option value="Parenting">Parenting & Family</option>
+              <option value="Entertainment">Entertainment</option>
+              <option value="Finance">Finance & Business</option>
+            </select>
+          </label>
+          <Field label="Location / City *" name="location" value={t.city} required placeholder="e.g. Kochi, Mumbai, Bangalore" />
+          <Field label="Approx age" name="age" type="number" value={t.age ?? t.approx_age} min="1" max="100" />
+          <label className="field">
+            Gender
+            <select name="gender" defaultValue={t.gender === "male" || t.gender === "female" ? t.gender : ""}>
+              {GENDERS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+            </select>
+          </label>
+          <Field label="Collab fee / post (₹) *" name="fee" type="number" value={t.expected_fee ? Number(t.expected_fee) : ""} required min="0" placeholder="e.g. 25000" />
+          <Field label="Phone / WhatsApp *" name="phone" type="tel" value={t.phone} required placeholder="e.g. +91 98765 43210" />
+          <Field label="Email" name="email" type="email" value={t.email} placeholder="collab@creator.com" />
+          <label className="field full">
+            Profile photo {id ? "" : "*"}
+            <input name="photo" type="file" accept="image/jpeg,image/png,image/webp" required={!id} />
+            <small>Clear portrait or creator avatar (JPG, PNG, or WebP).</small>
+          </label>
+          <div className="field full">Featured reels / sample content (up to 3 links)</div>
+          {[0, 1, 2].map((i) => <Field key={i} label={`Sample link ${i + 1}`} name={"video" + i} type="url" value={video(i)?.url} placeholder="https://instagram.com/reel/..." />)}
+        </div>
+        <FormError error={error} />
+        {dupes && (
+          <div className="dupe">
+            <strong>Similar profile found:</strong>
+            {dupes.map((d) => (
+              <div key={d.talent.id} className="row">
+                <span>{d.talent.full_name} · {d.talent.phone}</span>
+                <button type="button" onClick={() => submit(null, [d.talent.id])}>Save anyway</button>
+              </div>
+            ))}
+          </div>
+        )}
+        <div className="formactions">
+          <button type="button" onClick={closeDrawer}>Cancel</button>
+          <button className="primary" disabled={busy}>{busy ? "Saving…" : id ? "Save changes" : "Add influencer"}</button>
+        </div>
+      </form>
+    </>
+  );
+}
+
 // ---------------------------------------------------------------- profile
 export function Profile({ id }) {
   const { openDrawer, closeDrawer, refresh, toast } = useStudio();
@@ -171,9 +340,10 @@ export function Profile({ id }) {
   const { data: t } = useData(() => api.get(`talent/${id}/`), [id, n]);
   const { data: casting } = useData(() => api.get(`talent/${id}/casting/`), [id, n]);
   const { data: notes } = useData(() => api.get("notes/", { talent: id, page_size: 100 }), [id, n]);
-  if (!t) return <><ModalHead title="Talent profile" /><div className="loading">Loading profile…</div></>;
+  if (!t) return <><ModalHead title="Profile" /><div className="loading">Loading profile…</div></>;
   const guardian = t.guardians[0];
   const photo = t.photos.find((p) => p.is_primary);
+  const isInf = t.talent_type === "influencer";
 
   async function remove() {
     if (!sure(t.full_name)) return;
@@ -181,7 +351,7 @@ export function Profile({ id }) {
       await api.del(`talent/${id}/`);
       closeDrawer();
       refresh();
-      toast("Talent deleted");
+      toast(isInf ? "Influencer deleted" : "Talent deleted");
     } catch (err) {
       toast(err.message);
     }
@@ -199,25 +369,39 @@ export function Profile({ id }) {
 
   return (
     <>
-      <ModalHead title="Talent profile" />
+      <ModalHead title={isInf ? "Influencer profile" : "Talent profile"} />
       <div className="profilehero">
         {photo ? <img src={photo.profile_url} alt={t.full_name} /> : <span className="noimg">{t.full_name[0]}</span>}
         <div>
-          <div className="eyebrow">{t.categories.map((c) => c.name).join(" · ")}</div>
+          <div className="eyebrow">{isInf ? `✦ INFLUENCER · ${(t.influencer_niche || t.primary_platform || "DIGITAL CREATOR").toUpperCase()}` : t.categories.map((c) => c.name).join(" · ")}</div>
           <h1>{t.full_name}</h1>
-          <p>{t.city} · {t.age ?? "—"} years · {genderLabel(t.gender)}</p>
+          <p>
+            {t.instagram && <strong style={{ color: "#fff", marginRight: 10 }}>@{t.instagram.replace(/^@/, "")}</strong>}
+            {t.city} {t.social_reach ? `· ✦ ${t.social_reach}` : ""} · {t.age ?? "—"} years · {genderLabel(t.gender)}
+          </p>
         </div>
       </div>
       <div className="actions" style={{ marginBottom: 25 }}>
         <button className="primary" onClick={() => openDrawer(<ShortlistTalent id={id} />)}>＋ Add to shortlist</button>
-        <button onClick={() => openDrawer(<TalentForm id={id} />)}>Edit profile</button>
+        <button onClick={() => openDrawer(isInf ? <InfluencerForm id={id} /> : <TalentForm id={id} />)}>Edit profile</button>
         <button onClick={() => (t.phone ? openDrawer(<Contact t={t} />) : toast("Add a phone number in Edit profile to enable contact shortcuts"))}>↗ Contact</button>
         <button onClick={remove}>Delete</button>
       </div>
       {t.booking_blockers.length > 0 && <div className="completed-notice" style={{ marginTop: 0, marginBottom: 20 }}>{t.booking_blockers.join(" ")}</div>}
       <div className="panel">
         <div className="detailgrid">
-          <div><small>Day rate</small>{t.expected_fee ? money(t.expected_fee) : "Not added"}</div>
+          <div><small>{isInf ? "Collab rate / post" : "Day rate"}</small>{t.expected_fee ? money(t.expected_fee) : "Not added"}</div>
+          {t.social_reach && <div><small>Audience reach</small>✦ {t.social_reach}</div>}
+          {t.primary_platform && <div><small>Primary platform</small>{t.primary_platform}</div>}
+          {t.influencer_niche && <div><small>Content niche</small>{t.influencer_niche}</div>}
+          {t.instagram && (
+            <div>
+              <small>Social handle</small>
+              <a href={t.instagram_url || `https://instagram.com/${t.instagram.replace(/^@/, "")}`} target="_blank" rel="noopener noreferrer" style={{ textDecoration: "underline", color: "#fff" }}>
+                @{t.instagram.replace(/^@/, "")} ↗
+              </a>
+            </div>
+          )}
           <div><small>Phone</small>{t.phone || "Not added"}</div>
           <div><small>Email</small>{t.email || "Not added"}</div>
           <div><small>Cast ID</small>{t.cast_id}</div>

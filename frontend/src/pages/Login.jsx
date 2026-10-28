@@ -22,12 +22,8 @@ function AuthFrame({ children }) {
         <p className="auth-tag">Good stories begin with the right people.</p>
       </div>
       <div className="auth-panel">
-        <div className="brand brand-lg">
-          <span className="brand-mark">ch</span>
-          <span className="brand-text">
-            <strong>creativheads</strong>
-            <small>Casting manager</small>
-          </span>
+        <div className="brand brand-lg" style={{ justifyContent: "center", marginBottom: 20 }}>
+          <img src="/Takeboard White_Logo.png" alt="TakeBoard by CreativHeads" className="brand-logo" />
         </div>
         {children}
       </div>

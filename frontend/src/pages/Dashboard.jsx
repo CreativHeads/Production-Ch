@@ -32,7 +32,7 @@ export default function Dashboard() {
   return (
     <div className="dashboard">
       <section className="hero">
-        <p className="eyebrow">CreativHeads Studio</p>
+        <p className="eyebrow">TakeBoard by CreativHeads</p>
         <h1 className="hero-line">Good stories start with good people.</h1>
         <p className="page-sub">Good to see you, {first}. Your casting workspace, at a glance.</p>
       </section>

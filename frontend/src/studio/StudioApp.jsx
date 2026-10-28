@@ -1,14 +1,15 @@
 // CreativHeads studio UI: shell (sidebar, header, footer), sign-in and page routing.
 import { useEffect, useState } from "react";
 import { api, ensureCsrf, setUnauthorizedHandler } from "../lib/api";
-import { CategoriesPage, HistoryPage, OverviewPage, ProjectsPage, ReviewsPage, SettingsPage, ShortlistsPage, TalentPage } from "./pages";
+import { CategoriesPage, HistoryPage, InfluencersPage, OverviewPage, ProjectsPage, ReviewsPage, SettingsPage, ShortlistsPage, TalentPage } from "./pages";
 import { FormError, Studio, initials, useData, useStudio, useStudioState } from "./shared";
 import "../studio.css";
 
 const NAV = [
   ["overview", "◫", "Overview", OverviewPage],
   ["talent", "♙", "Talent directory", TalentPage],
-  ["projects", "▣", "Casting projects", ProjectsPage],
+  ["influencers", "✦", "Influencers", InfluencersPage],
+  ["projects", "▣", "Projects", ProjectsPage],
   ["shortlists", "☷", "Shortlists", ShortlistsPage],
   ["history", "↺", "Casting history", HistoryPage],
   ["categories", "⌘", "Categories & tags", CategoriesPage],
@@ -18,19 +19,19 @@ const NAV = [
 
 function Brand() {
   return (
-    <a className="brand" href="#talent">
-      <span className="brandmark">c<span>h</span></span>
-      <span>creativheads<small>CASTING MANAGER</small></span>
+    <a className="brand" href="#talent" title="TakeBoard by CreativHeads">
+      <img src="/Takeboard White_Logo.png" alt="TakeBoard by CreativHeads" className="brand-logo" />
     </a>
   );
 }
 
 function Shell() {
   const s = useStudio();
-  const { data: count } = useData(() => api.get("talent/", { page_size: 1 }));
+  const { data: castCount } = useData(() => api.get("talent/", { type: "cast", page_size: 1 }));
+  const { data: infCount } = useData(() => api.get("talent/", { type: "influencer", page_size: 1 }));
   const current = NAV.find((n) => n[0] === s.page) || NAV[1];
   const Page = current[3];
-  const studioName = s.settings?.studio_name || "CreativHeads Studio";
+  const studioName = s.settings?.studio_name || "TakeBoard Studio";
   return (
     <>
       <aside>
@@ -44,7 +45,8 @@ function Shell() {
             <button key={id} className={current[0] === id ? "active" : ""} onClick={() => s.go(id)}>
               <span className="ico">{icon}</span>
               {name}
-              {id === "talent" && count && <em>{count.count}</em>}
+              {id === "talent" && castCount && castCount.count > 0 && <em>{castCount.count}</em>}
+              {id === "influencers" && infCount && infCount.count > 0 && <em>{infCount.count}</em>}
             </button>
           ))}
         </nav>
@@ -71,7 +73,7 @@ function Shell() {
           <Page key={current[0]} />
         </main>
         <footer>
-          <span>CREATIVHEADS CASTING</span>
+          <span>TAKEBOARD BY CREATIVHEADS</span>
           <span>Good stories begin with the right people.</span>
           <span>Signed in as {s.user.username}</span>
         </footer>
@@ -109,7 +111,7 @@ function Login({ onLogin }) {
     <div className="login">
       <div className="loginbox">
         <Brand />
-        <div className="eyebrow">CREATIVHEADS CASTING MANAGER</div>
+        <div className="eyebrow">TAKEBOARD BY CREATIVHEADS</div>
         <h1>{mode === "signin" ? "Welcome back to the studio." : "Reset your password."}</h1>
         <p>{mode === "signin" ? "Your people. Your projects. One place." : "We'll email a reset link to the address on your account."}</p>
         <form onSubmit={submit}>
@@ -148,7 +150,7 @@ function ResetPassword() {
     <div className="login">
       <div className="loginbox">
         <Brand />
-        <div className="eyebrow">CREATIVHEADS CASTING MANAGER</div>
+        <div className="eyebrow">TAKEBOARD BY CREATIVHEADS</div>
         <h1>Choose a new password.</h1>
         {msg ? (
           <>

@@ -1,4 +1,4 @@
-# Run the Casting Manager on this computer: http://localhost:3456
+# Run TakeBoard by CreativHeads on this computer: http://localhost:3456
 # Usage (PowerShell, from D:\casting-manager):  .\start-local.ps1
 # Press Ctrl+C to stop.
 $env:APP_DEBUG = "1"

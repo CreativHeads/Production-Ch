@@ -126,6 +126,30 @@ function filterTalent(p, user, s) {
     if (status === "active" || status === "needs_details") q.where("talent.status", status);
   }
 
+  const talentType = p.type;
+  if (talentType === "influencer") {
+    q.where((w) =>
+      w.where("talent.talent_type", "influencer")
+        .orWhere("talent.talent_type", "both")
+        .orWhereExists(db("talent_categories").whereRaw("talent_categories.talent_id = talent.id")
+          .whereExists(db("terms").whereRaw("terms.id = talent_categories.term_id").whereIn("terms.slug", ["influencer", "content-creator"])))
+    );
+  } else if (talentType === "cast") {
+    q.where((w) =>
+      w.where("talent.talent_type", "cast")
+        .orWhere("talent.talent_type", "both")
+        .orWhereNull("talent.talent_type")
+        .orWhere("talent.talent_type", "")
+    );
+  }
+
+  if (p.niche) {
+    q.where("talent.influencer_niche", "like", `%${p.niche}%`);
+  }
+  if (p.platform) {
+    q.where("talent.primary_platform", "like", `%${p.platform}%`);
+  }
+
   const text = String(p.q || "").trim();
   if (text) {
     for (const word of text.split(/\s+/).slice(0, 6)) {

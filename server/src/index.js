@@ -1,4 +1,4 @@
-// CreativHeads Casting Manager: Express API + protected media + the built React app.
+// TakeBoard by CreativHeads: Express API + protected media + the built React app.
 const fs = require("fs");
 const path = require("path");
 const crypto = require("crypto");
@@ -169,7 +169,7 @@ app.use((err, req, res, next) => {
 
 ensureSchema()
   .then(() => {
-    app.listen(config.PORT, () => console.log(`Casting Manager listening on :${config.PORT} (${config.DB_CLIENT})`));
+    app.listen(config.PORT, () => console.log(`TakeBoard by CreativHeads listening on :${config.PORT} (${config.DB_CLIENT})`));
     // Housekeeping: expired sessions and exports, hourly.
     const { purgeExpired } = require("./services/dataio");
     const sweep = () => {

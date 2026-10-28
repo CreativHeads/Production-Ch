@@ -198,7 +198,7 @@ module.exports = function (r) {
       const link = `${config.APP_BASE_URL}/reset-password?uid=${uid}&token=${resetToken(user)}`;
       sendMail(
         user.email,
-        "Reset your CreativHeads Casting Manager password",
+        "Reset your TakeBoard by CreativHeads password",
         `Hi ${displayName(user)},\n\nUse this link within one hour to set a new password:\n${link}\n\nIf you didn't ask for this, ignore this email and tell your administrator.`,
       ).catch((e) => console.error("Reset email failed", e.message));
       await audit.log(null, "auth.password_reset_requested", { entityType: "user", entityId: user.id, label: user.username, message: `IP ${ip}` });

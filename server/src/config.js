@@ -53,7 +53,7 @@ module.exports = {
     user: env("EMAIL_HOST_USER", ""),
     password: env("EMAIL_HOST_PASSWORD", ""),
     secure: envBool("EMAIL_USE_SSL", false),
-    from: env("DEFAULT_FROM_EMAIL", "CreativHeads Casting <no-reply@creativheads.com>"),
+    from: env("DEFAULT_FROM_EMAIL", "TakeBoard by CreativHeads <no-reply@creativheads.com>"),
   },
   // First boot only: creates this administrator when the users table is empty.
   BOOTSTRAP_ADMIN: {

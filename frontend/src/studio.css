@@ -21,6 +21,8 @@ nav button em{background:#292929;color:#fff}
 .actions a.primary{background:#fff;color:#000}
 .login{min-height:100vh;display:grid;place-items:center;padding:24px;background:radial-gradient(ellipse at 0 100%,#141d8433,transparent 60%),#000}
 .loginbox{width:100%;max-width:420px}
+.brand-logo{max-width:100%;height:32px;width:auto;object-fit:contain;display:block}
+.loginbox .brand-logo{height:42px}
 .loginbox .brand{margin-bottom:48px}
 .loginbox form{margin-top:35px}
 .loginbox .primary{width:100%;margin-top:25px}
