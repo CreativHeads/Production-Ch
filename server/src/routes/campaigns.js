@@ -315,7 +315,7 @@ module.exports = function (r) {
   }));
 
   // ------------------------------------------------ PATCH /api/campaigns/:cid/influencers/:id
-  r.patch("/campaigns/:cid/influencers/:id", wrap(async (req, res) => {
+  r.patch("/campaigns/:cid/influencers/:id", upload.single("photo"), wrap(async (req, res) => {
     const inf = await db("campaign_influencers").where({ id: req.params.id, campaign_id: req.params.cid }).first();
     if (!inf) throw notFound();
 
@@ -328,6 +328,19 @@ module.exports = function (r) {
     if (b.location !== undefined) upd.location = String(b.location).trim();
     if (b.profile_url !== undefined) upd.profile_url = String(b.profile_url).trim();
     if (b.remark !== undefined) upd.remark = String(b.remark).trim();
+
+    if (req.file && inf.talent_id) {
+      const talent = await db("talent").where({ id: inf.talent_id }).first();
+      if (talent) {
+        try {
+          await T.addPhoto(talent, req.file.buffer, { user: req.user, makePrimary: true });
+          const primary = await db("talent_photos").where({ talent_id: talent.id, is_primary: true }).first();
+          if (primary) upd.photo_url = T.mediaUrl(primary.card || primary.thumb);
+        } catch (err) {
+          console.warn("Failed to process photo on patch:", err.message);
+        }
+      }
+    }
 
     await db("campaign_influencers").where({ id: inf.id }).update(upd);
     res.json(await db("campaign_influencers").where({ id: inf.id }).first());

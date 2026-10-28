@@ -292,200 +292,283 @@ aside{overflow-y:auto}
   to { opacity: 1; transform: translateY(0); }
 }
 
-/* Excel Spreadsheet Table for Campaign */
+/* Campaign Hero Bar: Heading on Left, KPIs on Right */
+.campaign-hero-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 20px;
+  background: #0d0d0d;
+  border: 1px solid #222;
+  border-radius: 10px;
+  padding: 16px 22px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+.campaign-hero-left {
+  flex: 1;
+  min-width: 260px;
+}
+.campaign-kpi-compact {
+  display: flex;
+  gap: 12px;
+  flex-shrink: 0;
+  flex-wrap: wrap;
+}
+.campaign-kpi-pill {
+  background: #141414;
+  border: 1px solid #282828;
+  border-radius: 8px;
+  padding: 10px 18px;
+  min-width: 130px;
+  text-align: right;
+}
+.campaign-kpi-pill label {
+  font-size: 10px;
+  color: #888;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  display: block;
+  margin-bottom: 4px;
+}
+.campaign-kpi-pill strong {
+  font-size: 22px;
+  letter-spacing: -0.5px;
+  font-weight: 700;
+  display: block;
+}
+
+/* Excel Spreadsheet Table for Campaign (3/4 Screen Height) */
 .campaign-excel-card {
   background: #0d0d0d;
-  border: 1px solid #242424;
+  border: 1px solid #262626;
   border-radius: 10px;
   overflow: hidden;
-  margin-top: 16px;
-  box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+  margin-top: 10px;
+  box-shadow: 0 4px 24px rgba(0,0,0,0.55);
+  display: flex;
+  flex-direction: column;
+  min-height: 520px;
+  height: calc(100vh - 270px);
+}
+.campaign-excel-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 16px;
+  background: #121212;
+  border-bottom: 1px solid #262626;
+  font-size: 12px;
+  flex-shrink: 0;
+}
+.excel-autosave-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 500;
+}
+.excel-autosave-indicator .saving-pill {
+  color: #ffd276;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+.excel-autosave-indicator .saved-pill {
+  color: #7bf59e;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+.excel-autosave-indicator .idle-pill {
+  color: #666;
+}
+.excel-add-row-bar-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #191919;
+  border: 1px solid #333;
+  color: #eee;
+  border-radius: 6px;
+  padding: 5px 12px;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.excel-add-row-bar-btn:hover {
+  background: #252525;
+  border-color: var(--accent);
+  color: var(--accent);
 }
 .campaign-excel-tablewrap {
-  overflow-x: auto;
+  flex: 1;
+  overflow: auto;
   width: 100%;
 }
 .campaign-excel-table {
   width: 100%;
-  border-collapse: collapse;
+  border-collapse: separate;
+  border-spacing: 0;
   font-size: 12px;
   text-align: left;
 }
 .campaign-excel-table th {
-  background: #141414;
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  background: #161616;
   color: #888;
   font-size: 10px;
   font-weight: 600;
   letter-spacing: 0.7px;
   text-transform: uppercase;
-  padding: 12px 12px;
-  border-bottom: 1px solid #282828;
+  padding: 10px 10px;
+  border-bottom: 1px solid #2d2d2d;
+  border-right: 1px solid #202020;
   white-space: nowrap;
 }
 .campaign-excel-table td {
-  padding: 8px 10px;
-  border-bottom: 1px solid #1c1c1c;
+  padding: 0;
+  border-bottom: 1px solid #1e1e1e;
+  border-right: 1px solid #1e1e1e;
   vertical-align: middle;
   color: #ddd;
+  height: 38px;
+  position: relative;
+}
+.campaign-excel-table td:last-child {
+  border-right: none;
+}
+.campaign-excel-table th:last-child {
+  border-right: none;
 }
 .campaign-excel-table tr:hover td {
   background: #121212;
 }
 .campaign-excel-table tr.is-finalised-row td {
-  background: rgba(18, 32, 14, 0.22);
+  background: rgba(18, 32, 14, 0.18);
 }
 .campaign-excel-table tr.is-finalised-row:hover td {
-  background: rgba(18, 32, 14, 0.38);
+  background: rgba(18, 32, 14, 0.3);
 }
 
-/* Quick Add Row in Excel Table */
-.campaign-excel-table tr.excel-entry-row {
-  background: #11170d;
-  border-bottom: 2px solid #2d3b20;
-}
-.campaign-excel-table tr.excel-entry-row td {
-  padding: 8px 6px;
-  border-bottom: 2px solid #2d3b20;
-  vertical-align: middle;
-}
-.campaign-excel-table tr.excel-entry-row input,
-.campaign-excel-table tr.excel-entry-row select {
+/* Excel Cell Direct Inputs */
+.excel-grid-input {
   width: 100%;
-  background: #0b0f09;
-  border: 1px solid #2d3d1e;
+  height: 100%;
+  background: transparent;
+  border: 1px solid transparent;
   color: #eee;
-  padding: 7px 8px;
-  border-radius: 5px;
-  font-size: 11px;
-}
-.campaign-excel-table tr.excel-entry-row input:focus,
-.campaign-excel-table tr.excel-entry-row select:focus {
-  border-color: var(--accent);
+  padding: 8px 10px;
+  font-size: 12px;
+  font-family: inherit;
   outline: none;
-  box-shadow: 0 0 0 2px rgba(222, 255, 135, 0.18);
+  border-radius: 0;
+  box-sizing: border-box;
+  transition: background 0.12s ease, border-color 0.12s ease;
 }
-.excel-photo-pick {
-  width: 34px;
-  height: 42px;
-  background: #192215;
-  border: 1px dashed #3a4a28;
+.excel-grid-input:hover {
+  background: rgba(255, 255, 255, 0.03);
+}
+.excel-grid-input:focus {
+  background: #161d12;
+  border: 1px solid var(--accent);
+  box-shadow: inset 0 0 0 1px var(--accent);
+  color: #fff;
+}
+.excel-grid-input.excel-grid-num {
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+.excel-grid-select {
+  width: 100%;
+  height: 100%;
+  background: transparent;
+  border: 1px solid transparent;
+  color: #ddd;
+  padding: 8px 10px;
+  font-size: 11px;
+  font-family: inherit;
+  outline: none;
+  cursor: pointer;
+  box-sizing: border-box;
+}
+.excel-grid-select:focus {
+  background: #161d12;
+  border: 1px solid var(--accent);
+  box-shadow: inset 0 0 0 1px var(--accent);
+}
+.excel-grid-photo-cell {
+  width: 28px;
+  height: 32px;
+  margin: 0 auto;
   border-radius: 4px;
+  overflow: hidden;
+  background: #1a1a1a;
+  border: 1px solid #333;
   display: grid;
   place-items: center;
   cursor: pointer;
-  overflow: hidden;
   font-size: 11px;
-  color: #888;
-  flex-shrink: 0;
+  color: #777;
+  transition: border-color 0.15s ease;
 }
-.excel-photo-pick img {
+.excel-grid-photo-cell:hover {
+  border-color: var(--accent);
+}
+.excel-grid-photo-cell img {
   width: 100%;
   height: 100%;
   object-fit: cover;
 }
-.excel-photo-pick:hover {
-  border-color: var(--accent);
-  color: #fff;
-}
-.excel-add-btn {
-  background: var(--accent);
-  color: #111;
+.excel-grid-del-btn {
+  background: none;
   border: 0;
-  font-weight: 700;
-  font-size: 11px;
-  padding: 7px 12px;
-  border-radius: 5px;
-  white-space: nowrap;
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
+  color: #666;
+  font-size: 12px;
+  padding: 4px 8px;
   cursor: pointer;
-}
-.excel-add-btn:hover {
-  background: #caff42;
-}
-.excel-quickadd-icon-btn {
-  width: 26px;
-  height: 26px;
-  background: var(--accent);
-  color: #111;
-  border: 0;
-  border-radius: 5px;
-  font-weight: 800;
-  font-size: 14px;
-  line-height: 1;
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  transition: transform 0.15s ease, background 0.15s ease;
-  padding: 0;
-}
-.excel-quickadd-icon-btn:hover {
-  background: #caff42;
-  transform: scale(1.08);
-}
-.excel-quickadd-icon-btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-.excel-row-save-btn {
-  width: 26px;
-  height: 26px;
-  background: var(--accent);
-  color: #111;
-  border: 0;
-  border-radius: 5px;
-  font-weight: 800;
-  font-size: 14px;
-  line-height: 1;
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  transition: transform 0.15s ease, background 0.15s ease;
-}
-.excel-row-save-btn:hover {
-  background: #caff42;
-  transform: scale(1.08);
-}
-.excel-row-save-btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-.excel-row-action-icon {
-  width: 22px;
-  height: 22px;
-  padding: 0;
-  background: #202020;
-  color: #aaa;
-  border: 1px solid #333;
   border-radius: 4px;
-  font-size: 11px;
+  opacity: 0.35;
+  transition: opacity 0.15s ease, color 0.15s ease, background 0.15s ease;
+}
+.campaign-excel-table tr:hover .excel-grid-del-btn {
+  opacity: 1;
+}
+.excel-grid-del-btn:hover {
+  color: #ff7575;
+  background: rgba(255, 60, 60, 0.15);
+}
+.excel-cell-save-icon {
+  background: var(--accent);
+  color: #111;
+  border: 0;
+  border-radius: 4px;
+  font-weight: 800;
+  font-size: 12px;
+  padding: 4px 8px;
+  cursor: pointer;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  cursor: pointer;
-  flex-shrink: 0;
-  transition: all 0.15s ease;
 }
-.excel-row-action-icon:hover {
-  background: #333;
-  color: #fff;
-  border-color: #555;
+.excel-cell-save-icon:hover {
+  background: #caff42;
 }
-.excel-row-action-icon.roster-delete:hover {
-  background: #3b1818;
-  color: #ff8585;
-  border-color: #732626;
+.campaign-excel-table tfoot {
+  position: sticky;
+  bottom: 0;
+  z-index: 5;
+  background: #0a0a0a;
 }
-.excel-footer-row td {
-  background: #0a0a0a !important;
-  font-weight: 600;
+.campaign-excel-table tfoot td {
+  padding: 10px 14px;
+  border-top: 1px solid #2d2d2d;
+  border-bottom: none;
   color: #aaa;
-  border-top: 1px solid #2c2c2c;
-  padding: 12px 14px;
+  font-weight: 600;
 }
 .view-toggle-btns {
   display: flex;

@@ -1144,31 +1144,41 @@ export function CampaignInfluencerForm({ campaignId, initialData = null }) {
 
 // ---------------------------------------------------------------- Campaign Excel Spreadsheet Component
 function CampaignExcelSpreadsheet({ campaign, shown, removeInfluencer, changeStatus, openDrawer, refresh, toast }) {
-  const [name, setName] = useState("");
-  const [talentId, setTalentId] = useState(null);
-  const [platform, setPlatform] = useState("Instagram");
-  const [profileUrl, setProfileUrl] = useState("");
-  const [location, setLocation] = useState(campaign.location || "Coimbatore");
-  const [rateFixed, setRateFixed] = useState("");
-  const [dateAvailable, setDateAvailable] = useState(campaign.start_date || "");
-  const [status, setStatus] = useState("finalised");
-  const [remark, setRemark] = useState("");
-  const [photoFile, setPhotoFile] = useState(null);
-  const [photoPreview, setPhotoPreview] = useState(null);
+  const [rows, setRows] = useState(shown);
+  const [saveStatus, setSaveStatus] = useState("idle"); // idle | saving | saved | error
+
+  // New row bottom entry state
+  const [newName, setNewName] = useState("");
+  const [newTalentId, setNewTalentId] = useState(null);
+  const [newProfile, setNewProfile] = useState("");
+  const [newRemark, setNewRemark] = useState("");
+  const [newLocation, setNewLocation] = useState(campaign.location || "Coimbatore");
+  const [newRate, setNewRate] = useState("");
+  const [newDate, setNewDate] = useState(campaign.start_date || "");
+  const [newStatus, setNewStatus] = useState("finalised");
+  const [newPhotoFile, setNewPhotoFile] = useState(null);
+  const [newPhotoPreview, setNewPhotoPreview] = useState(null);
+  const [addingNew, setAddingNew] = useState(false);
+
+  // Suggestions for talent autocomplete
   const [suggestions, setSuggestions] = useState([]);
   const [showDropdown, setShowDropdown] = useState(false);
-  const [adding, setAdding] = useState(false);
+  const nameInputRef = useRef(null);
 
-  // Auto-suggestion from Talent directory
   useEffect(() => {
-    if (!name || name.length < 2 || talentId) {
+    setRows(shown);
+  }, [shown]);
+
+  // Autocomplete debounce
+  useEffect(() => {
+    if (!newName || newName.length < 2 || newTalentId) {
       setSuggestions([]);
       setShowDropdown(false);
       return;
     }
     const timer = setTimeout(async () => {
       try {
-        const res = await api.get("talent/", { q: name, page_size: 5 });
+        const res = await api.get("talent/", { q: newName, page_size: 5 });
         if (res && res.results) {
           setSuggestions(res.results);
           setShowDropdown(res.results.length > 0);
@@ -1178,66 +1188,129 @@ function CampaignExcelSpreadsheet({ campaign, shown, removeInfluencer, changeSta
       }
     }, 200);
     return () => clearTimeout(timer);
-  }, [name, talentId]);
+  }, [newName, newTalentId]);
 
-  function pickSuggestion(s) {
-    setName(s.full_name);
-    setTalentId(s.id);
-    if (s.instagram) setProfileUrl(s.instagram.replace(/^@/, ""));
-    if (s.city) setLocation(s.city);
-    if (s.expected_fee) setRateFixed(s.expected_fee);
-    if (s.photo?.card) setPhotoPreview(s.photo.card);
-    if (s.primary_platform) setPlatform(s.primary_platform);
+  function pickSuggestionNew(s) {
+    setNewName(s.full_name);
+    setNewTalentId(s.id);
+    if (s.instagram) setNewProfile(s.instagram.replace(/^@/, ""));
+    if (s.city) setNewLocation(s.city);
+    if (s.expected_fee) setNewRate(s.expected_fee);
+    if (s.photo?.card) setNewPhotoPreview(s.photo.card);
     setShowDropdown(false);
   }
 
-  async function handleAddRow(e) {
-    if (e) e.preventDefault();
-    if (!name.trim()) {
-      toast("Please enter an influencer name");
+  function handleCellChange(id, field, value) {
+    setRows((prev) => prev.map((r) => (r.id === id ? { ...r, [field]: value } : r)));
+  }
+
+  async function handleAutoSave(id, field, value) {
+    const original = shown.find((s) => s.id === id);
+    if (original && String(original[field] ?? "") === String(value ?? "")) {
       return;
     }
-    setAdding(true);
+    setSaveStatus("saving");
     try {
-      const fd = new FormData();
-      fd.append("name", name.trim());
-      if (talentId) fd.append("talent_id", talentId);
-      fd.append("profile_url", profileUrl.trim());
-      fd.append("platform", platform);
-      fd.append("location", location.trim());
-      if (rateFixed !== "") fd.append("rate_fixed", rateFixed);
-      if (dateAvailable.trim()) fd.append("date_available", dateAvailable.trim());
-      fd.append("status", status);
-      if (remark.trim()) fd.append("remark", remark.trim());
-      if (photoFile) fd.append("photo", photoFile);
-
-      await api.post(`campaigns/${campaign.id}/influencers/`, fd);
-      toast(`Added "${name}" to campaign sheet`);
-      setName("");
-      setTalentId(null);
-      setProfileUrl("");
-      setRateFixed("");
-      setRemark("");
-      setPhotoFile(null);
-      setPhotoPreview(null);
+      await api.patch(`campaigns/${campaign.id}/influencers/${id}/`, { [field]: value });
+      setSaveStatus("saved");
+      setTimeout(() => setSaveStatus("idle"), 2500);
       refresh();
     } catch (err) {
-      toast(err.message);
-    } finally {
-      setAdding(false);
+      setSaveStatus("error");
+      toast("Failed to auto-save: " + err.message);
     }
   }
 
-  const totalRate = shown.reduce((acc, i) => acc + (Number(i.rate_fixed) || 0), 0);
-  const finalisedCount = shown.filter((i) => i.status === "finalised" || i.status === "confirmed").length;
+  async function handlePhotoUpload(infId, file) {
+    if (!file) return;
+    setSaveStatus("saving");
+    try {
+      const fd = new FormData();
+      fd.append("photo", file);
+      await api.patch(`campaigns/${campaign.id}/influencers/${infId}/`, fd);
+      setSaveStatus("saved");
+      setTimeout(() => setSaveStatus("idle"), 2500);
+      refresh();
+      toast("Photo auto-saved!");
+    } catch (err) {
+      setSaveStatus("error");
+      toast("Photo upload failed: " + err.message);
+    }
+  }
+
+  async function submitNewRow() {
+    if (!newName.trim()) return;
+    setAddingNew(true);
+    setSaveStatus("saving");
+    try {
+      const fd = new FormData();
+      fd.append("name", newName.trim());
+      if (newTalentId) fd.append("talent_id", newTalentId);
+      fd.append("profile_url", newProfile.trim());
+      fd.append("platform", "Instagram");
+      fd.append("location", newLocation.trim());
+      if (newRate !== "") fd.append("rate_fixed", newRate);
+      if (newDate.trim()) fd.append("date_available", newDate.trim());
+      fd.append("status", newStatus);
+      if (newRemark.trim()) fd.append("remark", newRemark.trim());
+      if (newPhotoFile) fd.append("photo", newPhotoFile);
+
+      await api.post(`campaigns/${campaign.id}/influencers/`, fd);
+      setSaveStatus("saved");
+      setTimeout(() => setSaveStatus("idle"), 2500);
+      setNewName("");
+      setNewTalentId(null);
+      setNewProfile("");
+      setNewRemark("");
+      setNewRate("");
+      setNewPhotoFile(null);
+      setNewPhotoPreview(null);
+      refresh();
+    } catch (err) {
+      setSaveStatus("error");
+      toast(err.message);
+    } finally {
+      setAddingNew(false);
+    }
+  }
+
+  const totalRate = rows.reduce((acc, i) => acc + (Number(i.rate_fixed) || 0), 0);
+  const finalisedCount = rows.filter((i) => i.status === "finalised" || i.status === "confirmed").length;
 
   return (
     <div className="campaign-excel-card">
+      {/* Excel Sheet Toolbar */}
+      <div className="campaign-excel-toolbar">
+        <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+          <strong style={{ color: "#fff", fontSize: 13, display: "flex", alignItems: "center", gap: 6 }}>
+            📊 Campaign Roster Grid
+          </strong>
+          <div className="excel-autosave-indicator">
+            {saveStatus === "saving" && <span className="saving-pill">● Saving changes…</span>}
+            {saveStatus === "saved" && <span className="saved-pill">✓ Auto-saved</span>}
+            {saveStatus === "error" && <span className="saving-pill" style={{ color: "#ff8585" }}>⚠ Auto-save error</span>}
+            {saveStatus === "idle" && <span className="idle-pill">● Auto-save enabled</span>}
+          </div>
+        </div>
+
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <button
+            type="button"
+            className="excel-add-row-bar-btn"
+            onClick={() => {
+              if (nameInputRef.current) nameInputRef.current.focus();
+            }}
+          >
+            ＋ Add new row
+          </button>
+        </div>
+      </div>
+
       <div className="campaign-excel-tablewrap">
         <table className="campaign-excel-table">
           <thead>
             <tr>
-              <th style={{ width: 36, textAlign: "center" }}>#</th>
+              <th style={{ width: 38, textAlign: "center" }}>#</th>
               <th style={{ width: 44, textAlign: "center" }}>Photo</th>
               <th style={{ minWidth: 170 }}>Influencer Name *</th>
               <th style={{ minWidth: 140 }}>Profile / Handle</th>
@@ -1249,21 +1322,122 @@ function CampaignExcelSpreadsheet({ campaign, shown, removeInfluencer, changeSta
             </tr>
           </thead>
           <tbody>
-            {/* Inline Excel Quick-Add Row */}
-            <tr className="excel-entry-row">
-              <td style={{ textAlign: "center", padding: "4px 2px" }}>
-                <button
-                  type="button"
-                  className="excel-quickadd-icon-btn"
-                  disabled={adding}
-                  onClick={handleAddRow}
-                  title="Click to add row to sheet (or press Enter in any field)"
-                >
-                  {adding ? "…" : "＋"}
-                </button>
-              </td>
-              <td style={{ textAlign: "center" }}>
-                <label className="excel-photo-pick" title="Click to upload photo">
+            {/* Existing Rows: Pure Excel Cells with Auto-save */}
+            {rows.map((inf, idx) => {
+              const isDone = inf.status === "finalised" || inf.status === "confirmed";
+              return (
+                <tr key={inf.id} className={isDone ? "is-finalised-row" : ""}>
+                  <td style={{ textAlign: "center", color: "#666", fontSize: 11 }}>{idx + 1}</td>
+                  <td style={{ textAlign: "center", padding: "3px" }}>
+                    <label className="excel-grid-photo-cell" title="Click to upload or replace photo">
+                      <input
+                        type="file"
+                        accept="image/*"
+                        style={{ display: "none" }}
+                        onChange={(e) => handlePhotoUpload(inf.id, e.target.files[0])}
+                      />
+                      {inf.photo_url ? (
+                        <img src={inf.photo_url} alt={inf.name} />
+                      ) : (
+                        <span>{inf.name ? inf.name[0] : "✦"}</span>
+                      )}
+                    </label>
+                  </td>
+                  <td>
+                    <input
+                      className="excel-grid-input"
+                      value={inf.name || ""}
+                      onChange={(e) => handleCellChange(inf.id, "name", e.target.value)}
+                      onBlur={(e) => handleAutoSave(inf.id, "name", e.target.value)}
+                    />
+                  </td>
+                  <td>
+                    <input
+                      className="excel-grid-input"
+                      placeholder="@handle or URL"
+                      value={inf.profile_url || ""}
+                      onChange={(e) => handleCellChange(inf.id, "profile_url", e.target.value)}
+                      onBlur={(e) => handleAutoSave(inf.id, "profile_url", e.target.value)}
+                    />
+                  </td>
+                  <td>
+                    <input
+                      className="excel-grid-input"
+                      placeholder="e.g. 1 Reel + 2 Stories"
+                      value={inf.remark || ""}
+                      onChange={(e) => handleCellChange(inf.id, "remark", e.target.value)}
+                      onBlur={(e) => handleAutoSave(inf.id, "remark", e.target.value)}
+                    />
+                  </td>
+                  <td>
+                    <input
+                      className="excel-grid-input"
+                      placeholder="Location"
+                      value={inf.location || ""}
+                      onChange={(e) => handleCellChange(inf.id, "location", e.target.value)}
+                      onBlur={(e) => handleAutoSave(inf.id, "location", e.target.value)}
+                    />
+                  </td>
+                  <td>
+                    <input
+                      type="number"
+                      className="excel-grid-input excel-grid-num"
+                      placeholder="0"
+                      value={inf.rate_fixed ?? ""}
+                      style={{ color: isDone ? "#7bf59e" : "#ddd" }}
+                      onChange={(e) => handleCellChange(inf.id, "rate_fixed", e.target.value)}
+                      onBlur={(e) => handleAutoSave(inf.id, "rate_fixed", e.target.value)}
+                    />
+                  </td>
+                  <td>
+                    <input
+                      className="excel-grid-input"
+                      placeholder="YYYY-MM-DD"
+                      value={inf.date_available || ""}
+                      onChange={(e) => handleCellChange(inf.id, "date_available", e.target.value)}
+                      onBlur={(e) => handleAutoSave(inf.id, "date_available", e.target.value)}
+                    />
+                  </td>
+                  <td>
+                    <div style={{ display: "flex", alignItems: "center", gap: 4, height: "100%" }}>
+                      <select
+                        className="excel-grid-select"
+                        value={inf.status || "shortlisted"}
+                        style={{
+                          flex: 1,
+                          color: isDone ? "#95f589" : "#bbb",
+                          fontWeight: isDone ? 600 : 400,
+                        }}
+                        onChange={(e) => {
+                          handleCellChange(inf.id, "status", e.target.value);
+                          handleAutoSave(inf.id, "status", e.target.value);
+                        }}
+                      >
+                        <option value="finalised">✓ Finalised</option>
+                        <option value="shortlisted">Shortlisted</option>
+                        <option value="pitched">Pitched</option>
+                        <option value="completed">Completed</option>
+                        <option value="declined">Declined</option>
+                      </select>
+                      <button
+                        type="button"
+                        className="excel-grid-del-btn"
+                        onClick={() => removeInfluencer(inf)}
+                        title="Delete row"
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              );
+            })}
+
+            {/* Bottom New Row (Excel Blank Row for Direct Input) */}
+            <tr style={{ background: "rgba(255,255,255,0.015)" }}>
+              <td style={{ textAlign: "center", color: "var(--accent)", fontSize: 13, fontWeight: 700 }}>＋</td>
+              <td style={{ textAlign: "center", padding: "3px" }}>
+                <label className="excel-grid-photo-cell" title="Click to upload photo">
                   <input
                     type="file"
                     accept="image/*"
@@ -1271,31 +1445,35 @@ function CampaignExcelSpreadsheet({ campaign, shown, removeInfluencer, changeSta
                     onChange={(e) => {
                       const f = e.target.files[0];
                       if (f) {
-                        setPhotoFile(f);
-                        setPhotoPreview(URL.createObjectURL(f));
+                        setNewPhotoFile(f);
+                        setNewPhotoPreview(URL.createObjectURL(f));
                       }
                     }}
                   />
-                  {photoPreview ? <img src={photoPreview} alt="Thumb" /> : "📷"}
+                  {newPhotoPreview ? <img src={newPhotoPreview} alt="" /> : <span style={{ opacity: 0.5 }}>📷</span>}
                 </label>
               </td>
               <td style={{ position: "relative" }}>
                 <input
-                  required
-                  placeholder="Enter name (auto-fetches)…"
-                  value={name}
+                  ref={nameInputRef}
+                  className="excel-grid-input"
+                  placeholder="Type name to add new row…"
+                  value={newName}
                   autoComplete="off"
                   onChange={(e) => {
-                    setName(e.target.value);
-                    setTalentId(null);
+                    setNewName(e.target.value);
+                    setNewTalentId(null);
                   }}
-                  onKeyDown={(e) => e.key === "Enter" && handleAddRow(e)}
+                  onKeyDown={(e) => e.key === "Enter" && submitNewRow()}
+                  onBlur={() => {
+                    if (newName.trim() && !showDropdown) submitNewRow();
+                  }}
                 />
                 {showDropdown && suggestions.length > 0 && (
-                  <div className="talent-autocomplete" style={{ top: "100%", left: 0, minWidth: 260, zIndex: 10 }}>
+                  <div className="talent-autocomplete" style={{ top: "100%", left: 0, minWidth: 260, zIndex: 20 }}>
                     <div className="autocomplete-header">Found in directory — click to autofill:</div>
                     {suggestions.map((s) => (
-                      <div key={s.id} className="autocomplete-item" onClick={() => pickSuggestion(s)}>
+                      <div key={s.id} className="autocomplete-item" onClick={() => pickSuggestionNew(s)}>
                         <div className="autocomplete-avatar">
                           {s.photo ? <img src={s.photo.card} alt={s.full_name} /> : s.full_name[0]}
                         </div>
@@ -1311,48 +1489,58 @@ function CampaignExcelSpreadsheet({ campaign, shown, removeInfluencer, changeSta
               </td>
               <td>
                 <input
+                  className="excel-grid-input"
                   placeholder="@handle or URL"
-                  value={profileUrl}
-                  onChange={(e) => setProfileUrl(e.target.value)}
-                  onKeyDown={(e) => e.key === "Enter" && handleAddRow(e)}
+                  value={newProfile}
+                  onChange={(e) => setNewProfile(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && submitNewRow()}
                 />
               </td>
               <td>
                 <input
+                  className="excel-grid-input"
                   placeholder="e.g. 1 Reel + 2 Stories"
-                  value={remark}
-                  onChange={(e) => setRemark(e.target.value)}
-                  onKeyDown={(e) => e.key === "Enter" && handleAddRow(e)}
+                  value={newRemark}
+                  onChange={(e) => setNewRemark(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && submitNewRow()}
                 />
               </td>
               <td>
                 <input
-                  placeholder="e.g. Coimbatore"
-                  value={location}
-                  onChange={(e) => setLocation(e.target.value)}
-                  onKeyDown={(e) => e.key === "Enter" && handleAddRow(e)}
+                  className="excel-grid-input"
+                  placeholder="Location"
+                  value={newLocation}
+                  onChange={(e) => setNewLocation(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && submitNewRow()}
                 />
               </td>
               <td>
                 <input
                   type="number"
-                  placeholder="₹ Rate"
-                  value={rateFixed}
-                  onChange={(e) => setRateFixed(e.target.value)}
-                  onKeyDown={(e) => e.key === "Enter" && handleAddRow(e)}
+                  className="excel-grid-input excel-grid-num"
+                  placeholder="0"
+                  value={newRate}
+                  onChange={(e) => setNewRate(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && submitNewRow()}
                 />
               </td>
               <td>
                 <input
-                  placeholder="e.g. 2026-11-05"
-                  value={dateAvailable}
-                  onChange={(e) => setDateAvailable(e.target.value)}
-                  onKeyDown={(e) => e.key === "Enter" && handleAddRow(e)}
+                  className="excel-grid-input"
+                  placeholder="YYYY-MM-DD"
+                  value={newDate}
+                  onChange={(e) => setNewDate(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && submitNewRow()}
                 />
               </td>
               <td>
-                <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
-                  <select value={status} onChange={(e) => setStatus(e.target.value)} style={{ flex: 1 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 4, height: "100%" }}>
+                  <select
+                    className="excel-grid-select"
+                    value={newStatus}
+                    style={{ flex: 1 }}
+                    onChange={(e) => setNewStatus(e.target.value)}
+                  >
                     <option value="finalised">✓ Finalised</option>
                     <option value="shortlisted">Shortlisted</option>
                     <option value="pitched">Pitched</option>
@@ -1361,134 +1549,30 @@ function CampaignExcelSpreadsheet({ campaign, shown, removeInfluencer, changeSta
                   </select>
                   <button
                     type="button"
-                    className="excel-row-save-btn"
-                    disabled={adding}
-                    onClick={handleAddRow}
-                    title="Add influencer to sheet"
+                    className="excel-cell-save-icon"
+                    onClick={submitNewRow}
+                    title="Press Enter or click to save row"
+                    disabled={addingNew}
                   >
-                    {adding ? "…" : "＋"}
+                    {addingNew ? "…" : "↵"}
                   </button>
                 </div>
               </td>
             </tr>
-
-            {/* Existing Influencer Rows */}
-            {shown.map((inf, idx) => {
-              const isDone = inf.status === "finalised" || inf.status === "confirmed";
-              return (
-                <tr key={inf.id} className={isDone ? "is-finalised-row" : ""}>
-                  <td style={{ textAlign: "center", color: "#666", fontSize: 11 }}>{idx + 1}</td>
-                  <td style={{ textAlign: "center" }}>
-                    <div style={{ width: 34, height: 42, borderRadius: 4, overflow: "hidden", background: "#222", margin: "0 auto", border: "1px solid #333" }}>
-                      {inf.photo_url ? (
-                        <img src={inf.photo_url} alt={inf.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-                      ) : (
-                        <div style={{ width: "100%", height: "100%", display: "grid", placeItems: "center", color: "#777", fontWeight: 700 }}>{inf.name[0]}</div>
-                      )}
-                    </div>
-                  </td>
-                  <td>
-                    <strong style={{ fontSize: 13, color: "#fff", display: "block" }}>{inf.name}</strong>
-                    {inf.talent_id && (
-                      <small style={{ color: "var(--accent)", fontSize: 10, cursor: "pointer" }} onClick={() => openDrawer(<Profile id={inf.talent_id} />)}>
-                        ✦ Talent directory linked ↗
-                      </small>
-                    )}
-                  </td>
-                  <td>
-                    <span style={{ fontSize: 11, color: "#aaa" }}>
-                      {inf.profile_url ? (
-                        inf.profile_url.startsWith("http") ? (
-                          <a href={inf.profile_url} target="_blank" rel="noreferrer" style={{ color: "#8cb4ff", textDecoration: "underline" }}>
-                            {inf.profile_url.replace(/^https?:\/\/(www\.)?/, '')} ↗
-                          </a>
-                        ) : (
-                          <span><b>{inf.profile_url}</b></span>
-                        )
-                      ) : (
-                        <span style={{ color: "#666" }}>—</span>
-                      )}
-                    </span>
-                  </td>
-                  <td>
-                    <span style={{ fontSize: 11, color: "#bbb", fontStyle: inf.remark ? "italic" : "normal" }}>
-                      {inf.remark || "—"}
-                    </span>
-                  </td>
-                  <td>
-                    <span style={{ fontSize: 11, color: "#aaa" }}>{inf.location ? `📍 ${inf.location}` : "—"}</span>
-                  </td>
-                  <td>
-                    <strong style={{ fontSize: 13, color: isDone ? "#7bf59e" : "#ddd" }}>
-                      ₹{Number(inf.rate_fixed || 0).toLocaleString("en-IN")}
-                    </strong>
-                  </td>
-                  <td>
-                    <span style={{ fontSize: 11, color: "#e0be87" }}>{inf.date_available ? `🗓 ${inf.date_available}` : "—"}</span>
-                  </td>
-                  <td>
-                    <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
-                      <select
-                        className="roster-status-select"
-                        value={inf.status}
-                        style={{
-                          flex: 1,
-                          background: isDone ? "#162814" : "#1a1a1a",
-                          color: isDone ? "#95f589" : "#bbb",
-                          borderColor: isDone ? "#2d4a25" : "#333",
-                          fontWeight: isDone ? 600 : 400,
-                        }}
-                        onChange={(e) => changeStatus(inf, e.target.value)}
-                      >
-                        <option value="finalised">✓ Finalised</option>
-                        <option value="shortlisted">Shortlisted</option>
-                        <option value="pitched">Pitched</option>
-                        <option value="completed">Completed</option>
-                        <option value="declined">Declined</option>
-                      </select>
-                      <button
-                        type="button"
-                        className="excel-row-action-icon"
-                        onClick={() => openDrawer(<CampaignInfluencerForm campaignId={campaign.id} initialData={inf} />)}
-                        title="Edit details"
-                      >
-                        ✎
-                      </button>
-                      <button
-                        type="button"
-                        className="excel-row-action-icon roster-delete"
-                        onClick={() => removeInfluencer(inf)}
-                        title="Remove from campaign"
-                      >
-                        ✕
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              );
-            })}
-
-            {shown.length === 0 && (
-              <tr>
-                <td colSpan={9} style={{ textAlign: "center", padding: "30px 15px", color: "#888" }}>
-                  No influencers in this list yet. Enter details in the row above and press <b>Enter</b> or click <b>＋</b> to add!
-                </td>
-              </tr>
-            )}
           </tbody>
-          {shown.length > 0 && (
-            <tfoot>
-              <tr className="excel-footer-row">
-                <td colSpan={2} style={{ textAlign: "center" }}>TOTAL</td>
-                <td>{shown.length} Influencer{shown.length === 1 ? "" : "s"}</td>
-                <td colSpan={3}>{finalisedCount} Finalised for Client</td>
-                <td style={{ color: "#7bf59e", fontSize: 14, fontWeight: 700 }}>₹{totalRate.toLocaleString("en-IN")}</td>
-                <td colSpan={2} style={{ textAlign: "right", color: "#777", fontSize: 11 }}>
-                  💡 Use "Export client list (Excel)" above to download formatted Excel
-                </td>
-              </tr>
-            </tfoot>
-          )}
+
+          {/* Excel Sticky Footer */}
+          <tfoot>
+            <tr className="excel-footer-row">
+              <td colSpan={2} style={{ textAlign: "center" }}>TOTAL</td>
+              <td>{rows.length} Influencer{rows.length === 1 ? "" : "s"}</td>
+              <td colSpan={3}>{finalisedCount} Finalised for Client</td>
+              <td style={{ color: "#7bf59e", fontSize: 14, fontWeight: 700 }}>₹{totalRate.toLocaleString("en-IN")}</td>
+              <td colSpan={2} style={{ textAlign: "right", color: "#777", fontSize: 11 }}>
+                💡 Click any cell to edit & auto-save directly
+              </td>
+            </tr>
+          </tfoot>
         </table>
       </div>
     </div>
@@ -1586,42 +1670,44 @@ export function CampaignDetail({ id, onBack, isPage }) {
         </div>
       </div>
 
-      {/* Campaign Meta Bar */}
-      <div style={{ marginBottom: 28, marginTop: 10 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 8 }}>
-          <span className="eyebrow" style={{ margin: 0 }}>{campaign.code} · {campaign.client_name.toUpperCase()}</span>
-          <span
-            className="status"
-            style={{
-              background: (campaign.status === "draft" || campaign.status === "planning") ? "#29210c" : campaign.status === "active" ? "#1b2e1be8" : "#222",
-              color: (campaign.status === "draft" || campaign.status === "planning") ? "#ffd276" : campaign.status === "active" ? "#95f589" : "#aaa",
-              border: (campaign.status === "draft" || campaign.status === "planning") ? "1px solid #544114" : "1px solid rgba(255,255,255,0.1)",
-              fontSize: 10,
-              padding: "3px 8px"
-            }}
-          >
-            {(campaign.status === "draft" || campaign.status === "planning") ? "PLANNING / DRAFT" : campaign.status.toUpperCase()}
-          </span>
+      {/* Campaign Hero Bar: Heading on Left, KPIs on Right (Second Image) */}
+      <div className="campaign-hero-bar">
+        <div className="campaign-hero-left">
+          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 4 }}>
+            <span className="eyebrow" style={{ margin: 0 }}>{campaign.code} · {campaign.client_name.toUpperCase()}</span>
+            <span
+              className="status"
+              style={{
+                background: (campaign.status === "draft" || campaign.status === "planning") ? "#29210c" : campaign.status === "active" ? "#1b2e1be8" : "#222",
+                color: (campaign.status === "draft" || campaign.status === "planning") ? "#ffd276" : campaign.status === "active" ? "#95f589" : "#aaa",
+                border: (campaign.status === "draft" || campaign.status === "planning") ? "1px solid #544114" : "1px solid rgba(255,255,255,0.1)",
+                fontSize: 10,
+                padding: "2px 7px"
+              }}
+            >
+              {(campaign.status === "draft" || campaign.status === "planning") ? "PLANNING / DRAFT" : campaign.status.toUpperCase()}
+            </span>
+          </div>
+          <h1 style={{ fontSize: 30, margin: "0 0 4px", letterSpacing: "-1px" }}>{campaign.title}</h1>
+          <p style={{ fontSize: 13, color: "#888", margin: 0 }}>
+            📍 {campaign.location || "Coimbatore"} &nbsp;·&nbsp; {campaign.start_date ? `${campaign.start_date} to ${campaign.end_date || "TBD"}` : "Dates TBC"}
+          </p>
         </div>
-        <h1 style={{ fontSize: 32, margin: "0 0 8px", letterSpacing: "-1px" }}>{campaign.title}</h1>
-        <p style={{ fontSize: 13, color: "#888", margin: 0 }}>
-          📍 {campaign.location || "Coimbatore"} &nbsp;·&nbsp; {campaign.start_date ? `${campaign.start_date} to ${campaign.end_date || "TBD"}` : "Dates TBC"}
-        </p>
-      </div>
 
-      {/* KPI Cards */}
-      <div className="campaign-kpi-bar" style={{ marginBottom: 28 }}>
-        <div className="campaign-kpi">
-          <label>Total Influencers</label>
-          <strong style={{ fontSize: 26 }}>{influencers.length}</strong>
-        </div>
-        <div className="campaign-kpi">
-          <label>Finalised Faces</label>
-          <strong style={{ fontSize: 26, color: "var(--accent)" }}>{finalised.length}</strong>
-        </div>
-        <div className="campaign-kpi">
-          <label>Agreed Client Budget</label>
-          <strong style={{ fontSize: 26, color: "#6ef0a3" }}>₹{campaign.total_fixed_rate.toLocaleString("en-IN")}</strong>
+        {/* Right side KPI Stats (Second Image) */}
+        <div className="campaign-kpi-compact">
+          <div className="campaign-kpi-pill">
+            <label>Total Influencers</label>
+            <strong>{influencers.length}</strong>
+          </div>
+          <div className="campaign-kpi-pill">
+            <label>Finalised Faces</label>
+            <strong style={{ color: "var(--accent)" }}>{finalised.length}</strong>
+          </div>
+          <div className="campaign-kpi-pill">
+            <label>Agreed Client Budget</label>
+            <strong style={{ color: "#6ef0a3" }}>₹{campaign.total_fixed_rate.toLocaleString("en-IN")}</strong>
+          </div>
         </div>
       </div>
 
