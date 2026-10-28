@@ -541,6 +541,55 @@ aside{overflow-y:auto}
   color: #ff7575;
   background: rgba(255, 60, 60, 0.15);
 }
+.excel-open-link-btn {
+  position: absolute;
+  right: 5px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  background: #181818;
+  border: 1px solid #333;
+  border-radius: 4px;
+  color: var(--accent);
+  font-size: 11px;
+  text-decoration: none;
+  line-height: 1;
+  transition: all 0.15s ease;
+  z-index: 2;
+  cursor: pointer;
+}
+.excel-open-link-btn:hover {
+  background: #252525;
+  border-color: #555;
+  color: #fff;
+  transform: translateY(-50%) scale(1.12);
+}
+.excel-day-tag {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 2px 6px;
+  background: #1b261b;
+  color: #88f58b;
+  border: 1px solid #2e442c;
+  border-radius: 4px;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+.roster-deliverables {
+  background: #141812;
+  border: 1px solid #253320;
+  color: #c9eab8;
+  font-size: 11px;
+  padding: 6px 10px;
+  border-radius: 5px;
+  margin: 6px 0;
+}
 .excel-cell-save-icon {
   background: var(--accent);
   color: #111;

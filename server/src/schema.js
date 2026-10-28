@@ -280,8 +280,10 @@ const TABLES = {
     t.integer("talent_id").unsigned().nullable().index();
     t.string("name", 150);
     t.string("photo_url", 255).defaultTo("");
+    t.string("phone", 50).defaultTo("");
     t.string("profile_url", 255).defaultTo("");
     t.string("platform", 50).defaultTo("Instagram");
+    t.text("deliverables");
     t.string("location", 150).defaultTo("");
     t.decimal("rate_fixed", 12, 2).nullable();
     t.string("date_available", 80).defaultTo("");
@@ -522,6 +524,8 @@ const ADDED_COLUMNS = [
   ["talent", "social_reach", (t) => t.string("social_reach", 80).defaultTo("")],
   ["talent", "influencer_niche", (t) => t.string("influencer_niche", 120).defaultTo("")],
   ["talent", "primary_platform", (t) => t.string("primary_platform", 40).defaultTo("Instagram")],
+  ["campaign_influencers", "phone", (t) => t.string("phone", 50).defaultTo("")],
+  ["campaign_influencers", "deliverables", (t) => t.text("deliverables")],
 ];
 
 async function ensureSchema() {

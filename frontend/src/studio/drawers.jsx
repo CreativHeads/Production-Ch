@@ -885,8 +885,10 @@ export function CampaignInfluencerForm({ campaignId, initialData = null }) {
   const { openDrawer, refresh, toast } = useStudio();
   const [name, setName] = useState(initialData?.name || "");
   const [talentId, setTalentId] = useState(initialData?.talent_id || null);
+  const [phone, setPhone] = useState(initialData?.phone || "");
   const [profileUrl, setProfileUrl] = useState(initialData?.profile_url || "");
   const [platform, setPlatform] = useState(initialData?.platform || "Instagram");
+  const [deliverables, setDeliverables] = useState(initialData?.deliverables || "");
   const [location, setLocation] = useState(initialData?.location || "Coimbatore");
   const [rateFixed, setRateFixed] = useState(initialData?.rate_fixed || "");
   const [dateAvailable, setDateAvailable] = useState(initialData?.date_available || "");
@@ -927,6 +929,9 @@ export function CampaignInfluencerForm({ campaignId, initialData = null }) {
     if (t.photo?.card || t.photo?.thumb) {
       setPhotoPreview(t.photo.card || t.photo.thumb);
     }
+    if (t.phone || t.whatsapp_phone) {
+      setPhone(t.phone || t.whatsapp_phone);
+    }
     if (t.instagram) {
       setProfileUrl(t.instagram.startsWith("@") ? t.instagram : `@${t.instagram}`);
     }
@@ -944,8 +949,10 @@ export function CampaignInfluencerForm({ campaignId, initialData = null }) {
       const fd = new FormData(form);
       if (talentId) fd.set("talent_id", talentId);
       fd.set("name", name);
+      fd.set("phone", phone);
       fd.set("profile_url", profileUrl);
       fd.set("platform", platform);
+      fd.set("deliverables", deliverables);
       fd.set("location", location);
       fd.set("rate_fixed", rateFixed);
       fd.set("date_available", dateAvailable);
@@ -955,8 +962,10 @@ export function CampaignInfluencerForm({ campaignId, initialData = null }) {
       if (initialData?.id) {
         await api.patch(`campaigns/${campaignId}/influencers/${initialData.id}/`, {
           name,
+          phone,
           profile_url: profileUrl,
           platform,
+          deliverables,
           location,
           rate_fixed: rateFixed,
           date_available: dateAvailable,
@@ -1048,6 +1057,16 @@ export function CampaignInfluencerForm({ campaignId, initialData = null }) {
             </div>
           </div>
 
+          {/* Phone Number */}
+          <label className="field">
+            Phone Number
+            <input
+              value={phone}
+              placeholder="+91 98765 43210"
+              onChange={(e) => setPhone(e.target.value)}
+            />
+          </label>
+
           {/* Social Handle */}
           <label className="field">
             Profile / Handle *
@@ -1118,12 +1137,24 @@ export function CampaignInfluencerForm({ campaignId, initialData = null }) {
             </select>
           </label>
 
+          {/* Deliverables */}
+          <label className="field full">
+            Deliverables
+            <textarea
+              value={deliverables}
+              placeholder="e.g. 1 Reel + 2 Stories"
+              style={{ minHeight: 60 }}
+              onChange={(e) => setDeliverables(e.target.value)}
+            />
+          </label>
+
           {/* Remarks */}
           <label className="field full">
-            Remark / Deliverables
+            Remarks / Notes
             <textarea
               value={remark}
-              placeholder="e.g. 1 Reel + 2 Stories, shoot at Coimbatore store on Nov 5th."
+              placeholder="e.g. 310K Followers, Model, shoot at Coimbatore store on Nov 5th."
+              style={{ minHeight: 60 }}
               onChange={(e) => setRemark(e.target.value)}
             />
           </label>
@@ -1142,6 +1173,40 @@ export function CampaignInfluencerForm({ campaignId, initialData = null }) {
   );
 }
 
+// ---------------------------------------------------------------- Campaign Helpers
+function getDayOfWeek(dateStr) {
+  if (!dateStr || typeof dateStr !== "string") return "";
+  const match = dateStr.match(/\b(\d{4})[-/.](\d{1,2})[-/.](\d{1,2})\b/);
+  if (match) {
+    const [, y, m, d] = match;
+    const date = new Date(Number(y), Number(m) - 1, Number(d));
+    if (!isNaN(date.getTime())) {
+      return ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"][date.getDay()];
+    }
+  }
+  const match2 = dateStr.match(/\b(\d{1,2})[-/.](\d{1,2})[-/.](\d{4})\b/);
+  if (match2) {
+    const [, d, m, y] = match2;
+    const date = new Date(Number(y), Number(m) - 1, Number(d));
+    if (!isNaN(date.getTime())) {
+      return ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"][date.getDay()];
+    }
+  }
+  return "";
+}
+
+function getProfileLink(url, platform = "Instagram") {
+  if (!url) return null;
+  const clean = String(url).trim();
+  if (!clean) return null;
+  if (/^https?:\/\//i.test(clean)) return clean;
+  const handle = clean.replace(/^@/, "");
+  if (platform && platform.toLowerCase() === "youtube") {
+    return `https://youtube.com/@${handle}`;
+  }
+  return `https://instagram.com/${handle}`;
+}
+
 // ---------------------------------------------------------------- Campaign Excel Spreadsheet Component
 function CampaignExcelSpreadsheet({ campaign, shown, removeInfluencer, changeStatus, openDrawer, refresh, toast }) {
   const [rows, setRows] = useState(shown);
@@ -1150,7 +1215,9 @@ function CampaignExcelSpreadsheet({ campaign, shown, removeInfluencer, changeSta
   // New row bottom entry state
   const [newName, setNewName] = useState("");
   const [newTalentId, setNewTalentId] = useState(null);
+  const [newPhone, setNewPhone] = useState("");
   const [newProfile, setNewProfile] = useState("");
+  const [newDeliverables, setNewDeliverables] = useState("");
   const [newRemark, setNewRemark] = useState("");
   const [newLocation, setNewLocation] = useState(campaign.location || "Coimbatore");
   const [newRate, setNewRate] = useState("");
@@ -1193,6 +1260,7 @@ function CampaignExcelSpreadsheet({ campaign, shown, removeInfluencer, changeSta
   function pickSuggestionNew(s) {
     setNewName(s.full_name);
     setNewTalentId(s.id);
+    if (s.phone || s.whatsapp_phone) setNewPhone(s.phone || s.whatsapp_phone);
     if (s.instagram) setNewProfile(s.instagram.replace(/^@/, ""));
     if (s.city) setNewLocation(s.city);
     if (s.expected_fee) setNewRate(s.expected_fee);
@@ -1246,8 +1314,10 @@ function CampaignExcelSpreadsheet({ campaign, shown, removeInfluencer, changeSta
       const fd = new FormData();
       fd.append("name", newName.trim());
       if (newTalentId) fd.append("talent_id", newTalentId);
+      if (newPhone.trim()) fd.append("phone", newPhone.trim());
       fd.append("profile_url", newProfile.trim());
       fd.append("platform", "Instagram");
+      if (newDeliverables.trim()) fd.append("deliverables", newDeliverables.trim());
       fd.append("location", newLocation.trim());
       if (newRate !== "") fd.append("rate_fixed", newRate);
       if (newDate.trim()) fd.append("date_available", newDate.trim());
@@ -1260,7 +1330,9 @@ function CampaignExcelSpreadsheet({ campaign, shown, removeInfluencer, changeSta
       setTimeout(() => setSaveStatus("idle"), 2500);
       setNewName("");
       setNewTalentId(null);
+      setNewPhone("");
       setNewProfile("");
+      setNewDeliverables("");
       setNewRemark("");
       setNewRate("");
       setNewPhotoFile(null);
@@ -1312,19 +1384,23 @@ function CampaignExcelSpreadsheet({ campaign, shown, removeInfluencer, changeSta
             <tr>
               <th style={{ width: 38, textAlign: "center" }}>#</th>
               <th style={{ width: 44, textAlign: "center" }}>Photo</th>
-              <th style={{ minWidth: 170 }}>Influencer Name *</th>
-              <th style={{ minWidth: 140 }}>Profile / Handle</th>
-              <th style={{ minWidth: 160 }}>Remarks / Deliverables</th>
-              <th style={{ minWidth: 110 }}>Location</th>
+              <th style={{ minWidth: 160 }}>Influencer Name *</th>
+              <th style={{ minWidth: 125 }}>Phone</th>
+              <th style={{ minWidth: 160 }}>Profile / Handle</th>
+              <th style={{ minWidth: 150 }}>Deliverables</th>
+              <th style={{ minWidth: 140 }}>Remarks</th>
+              <th style={{ minWidth: 105 }}>Location</th>
               <th style={{ minWidth: 105 }}>Rate Fixed (₹)</th>
-              <th style={{ minWidth: 115 }}>Date / Time Fixed</th>
-              <th style={{ minWidth: 140 }}>Status</th>
+              <th style={{ minWidth: 155 }}>Date / Time Fixed</th>
+              <th style={{ minWidth: 130 }}>Status</th>
             </tr>
           </thead>
           <tbody>
             {/* Existing Rows: Pure Excel Cells with Auto-save */}
             {rows.map((inf, idx) => {
               const isDone = inf.status === "finalised" || inf.status === "confirmed";
+              const dayOfWeek = getDayOfWeek(inf.date_available);
+              const profileLink = getProfileLink(inf.profile_url, inf.platform);
               return (
                 <tr key={inf.id} className={isDone ? "is-finalised-row" : ""}>
                   <td style={{ textAlign: "center", color: "#666", fontSize: 11 }}>{idx + 1}</td>
@@ -1354,16 +1430,49 @@ function CampaignExcelSpreadsheet({ campaign, shown, removeInfluencer, changeSta
                   <td>
                     <input
                       className="excel-grid-input"
-                      placeholder="@handle or URL"
-                      value={inf.profile_url || ""}
-                      onChange={(e) => handleCellChange(inf.id, "profile_url", e.target.value)}
-                      onBlur={(e) => handleAutoSave(inf.id, "profile_url", e.target.value)}
+                      placeholder="Phone / WhatsApp"
+                      value={inf.phone || ""}
+                      onChange={(e) => handleCellChange(inf.id, "phone", e.target.value)}
+                      onBlur={(e) => handleAutoSave(inf.id, "phone", e.target.value)}
                     />
+                  </td>
+                  <td>
+                    <div style={{ display: "flex", alignItems: "center", height: "100%", position: "relative" }}>
+                      <input
+                        className="excel-grid-input"
+                        placeholder="@handle or URL"
+                        style={{ paddingRight: profileLink ? 26 : 10 }}
+                        value={inf.profile_url || ""}
+                        onChange={(e) => handleCellChange(inf.id, "profile_url", e.target.value)}
+                        onBlur={(e) => handleAutoSave(inf.id, "profile_url", e.target.value)}
+                      />
+                      {profileLink && (
+                        <a
+                          href={profileLink}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="excel-open-link-btn"
+                          title="Open profile in new tab ↗"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          ↗
+                        </a>
+                      )}
+                    </div>
                   </td>
                   <td>
                     <input
                       className="excel-grid-input"
                       placeholder="e.g. 1 Reel + 2 Stories"
+                      value={inf.deliverables || ""}
+                      onChange={(e) => handleCellChange(inf.id, "deliverables", e.target.value)}
+                      onBlur={(e) => handleAutoSave(inf.id, "deliverables", e.target.value)}
+                    />
+                  </td>
+                  <td>
+                    <input
+                      className="excel-grid-input"
+                      placeholder="Notes / follower count"
                       value={inf.remark || ""}
                       onChange={(e) => handleCellChange(inf.id, "remark", e.target.value)}
                       onBlur={(e) => handleAutoSave(inf.id, "remark", e.target.value)}
@@ -1390,13 +1499,24 @@ function CampaignExcelSpreadsheet({ campaign, shown, removeInfluencer, changeSta
                     />
                   </td>
                   <td>
-                    <input
-                      className="excel-grid-input"
-                      placeholder="YYYY-MM-DD"
-                      value={inf.date_available || ""}
-                      onChange={(e) => handleCellChange(inf.id, "date_available", e.target.value)}
-                      onBlur={(e) => handleAutoSave(inf.id, "date_available", e.target.value)}
-                    />
+                    <div style={{ display: "flex", alignItems: "center", gap: 5, height: "100%", paddingLeft: 4, paddingRight: 4 }}>
+                      {dayOfWeek && (
+                        <span
+                          className="excel-day-tag"
+                          title={`Day: ${dayOfWeek}`}
+                        >
+                          {dayOfWeek}
+                        </span>
+                      )}
+                      <input
+                        className="excel-grid-input"
+                        placeholder="YYYY-MM-DD"
+                        style={{ paddingLeft: 4 }}
+                        value={inf.date_available || ""}
+                        onChange={(e) => handleCellChange(inf.id, "date_available", e.target.value)}
+                        onBlur={(e) => handleAutoSave(inf.id, "date_available", e.target.value)}
+                      />
+                    </div>
                   </td>
                   <td>
                     <div style={{ display: "flex", alignItems: "center", gap: 4, height: "100%" }}>
@@ -1470,7 +1590,7 @@ function CampaignExcelSpreadsheet({ campaign, shown, removeInfluencer, changeSta
                   }}
                 />
                 {showDropdown && suggestions.length > 0 && (
-                  <div className="talent-autocomplete" style={{ top: "100%", left: 0, minWidth: 260, zIndex: 20 }}>
+                  <div className="talent-autocomplete" style={{ top: "100%", left: 0, minWidth: 280, zIndex: 20 }}>
                     <div className="autocomplete-header">Found in directory — click to autofill:</div>
                     {suggestions.map((s) => (
                       <div key={s.id} className="autocomplete-item" onClick={() => pickSuggestionNew(s)}>
@@ -1479,7 +1599,7 @@ function CampaignExcelSpreadsheet({ campaign, shown, removeInfluencer, changeSta
                         </div>
                         <div className="autocomplete-info">
                           <strong>{s.full_name}</strong>
-                          <small>{s.instagram ? `@${s.instagram.replace(/^@/, '')}` : s.city} · {s.expected_fee ? `₹${s.expected_fee}` : "Influencer"}</small>
+                          <small>{s.phone ? `📞 ${s.phone} · ` : ""}{s.instagram ? `@${s.instagram.replace(/^@/, '')}` : s.city} · {s.expected_fee ? `₹${s.expected_fee}` : "Influencer"}</small>
                         </div>
                         <span className="autocomplete-pick">Autofill ↗</span>
                       </div>
@@ -1490,16 +1610,49 @@ function CampaignExcelSpreadsheet({ campaign, shown, removeInfluencer, changeSta
               <td>
                 <input
                   className="excel-grid-input"
-                  placeholder="@handle or URL"
-                  value={newProfile}
-                  onChange={(e) => setNewProfile(e.target.value)}
+                  placeholder="Phone / WhatsApp"
+                  value={newPhone}
+                  onChange={(e) => setNewPhone(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && submitNewRow()}
+                />
+              </td>
+              <td>
+                <div style={{ display: "flex", alignItems: "center", height: "100%", position: "relative" }}>
+                  <input
+                    className="excel-grid-input"
+                    placeholder="@handle or URL"
+                    style={{ paddingRight: getProfileLink(newProfile) ? 26 : 10 }}
+                    value={newProfile}
+                    onChange={(e) => setNewProfile(e.target.value)}
+                    onKeyDown={(e) => e.key === "Enter" && submitNewRow()}
+                  />
+                  {getProfileLink(newProfile) && (
+                    <a
+                      href={getProfileLink(newProfile)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="excel-open-link-btn"
+                      title="Open profile in new tab ↗"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      ↗
+                    </a>
+                  )}
+                </div>
+              </td>
+              <td>
+                <input
+                  className="excel-grid-input"
+                  placeholder="e.g. 1 Reel + 2 Stories"
+                  value={newDeliverables}
+                  onChange={(e) => setNewDeliverables(e.target.value)}
                   onKeyDown={(e) => e.key === "Enter" && submitNewRow()}
                 />
               </td>
               <td>
                 <input
                   className="excel-grid-input"
-                  placeholder="e.g. 1 Reel + 2 Stories"
+                  placeholder="Notes / follower count"
                   value={newRemark}
                   onChange={(e) => setNewRemark(e.target.value)}
                   onKeyDown={(e) => e.key === "Enter" && submitNewRow()}
@@ -1525,13 +1678,21 @@ function CampaignExcelSpreadsheet({ campaign, shown, removeInfluencer, changeSta
                 />
               </td>
               <td>
-                <input
-                  className="excel-grid-input"
-                  placeholder="YYYY-MM-DD"
-                  value={newDate}
-                  onChange={(e) => setNewDate(e.target.value)}
-                  onKeyDown={(e) => e.key === "Enter" && submitNewRow()}
-                />
+                <div style={{ display: "flex", alignItems: "center", gap: 5, height: "100%", paddingLeft: 4, paddingRight: 4 }}>
+                  {getDayOfWeek(newDate) && (
+                    <span className="excel-day-tag">
+                      {getDayOfWeek(newDate)}
+                    </span>
+                  )}
+                  <input
+                    className="excel-grid-input"
+                    placeholder="YYYY-MM-DD"
+                    style={{ paddingLeft: 4 }}
+                    value={newDate}
+                    onChange={(e) => setNewDate(e.target.value)}
+                    onKeyDown={(e) => e.key === "Enter" && submitNewRow()}
+                  />
+                </div>
               </td>
               <td>
                 <div style={{ display: "flex", alignItems: "center", gap: 4, height: "100%" }}>
@@ -1566,7 +1727,7 @@ function CampaignExcelSpreadsheet({ campaign, shown, removeInfluencer, changeSta
             <tr className="excel-footer-row">
               <td colSpan={2} style={{ textAlign: "center" }}>TOTAL</td>
               <td>{rows.length} Influencer{rows.length === 1 ? "" : "s"}</td>
-              <td colSpan={3}>{finalisedCount} Finalised for Client</td>
+              <td colSpan={5}>{finalisedCount} Finalised for Client</td>
               <td style={{ color: "#7bf59e", fontSize: 14, fontWeight: 700 }}>₹{totalRate.toLocaleString("en-IN")}</td>
               <td colSpan={2} style={{ textAlign: "right", color: "#777", fontSize: 11 }}>
                 💡 Click any cell to edit & auto-save directly
@@ -1640,40 +1801,17 @@ export function CampaignDetail({ id, onBack, isPage }) {
 
   return (
     <div className="campaign-detail-fullscreen">
-      {/* Top Navigation Bar */}
-      <div className="campaign-topbar">
-        <button
-          className="campaign-back-btn"
-          onClick={onBack ? onBack : closeDrawer}
-        >
-          ← Back to all campaigns
-        </button>
-
-        <div className="actions">
-          <button onClick={() => openDrawer(<CampaignForm campaign={campaign} />)}>Edit campaign</button>
-          <a
-            className="primary"
-            href={`/api/campaigns/${campaign.id}/export`}
-            download
-            title="Download formatted client Excel sheet"
-            style={{ padding: "8px 14px", textDecoration: "none", display: "inline-flex", alignItems: "center", gap: 6, borderRadius: 6, fontWeight: 600 }}
-          >
-            ↥ Export client list (Excel)
-          </a>
-          <button
-            className="roster-delete"
-            style={{ color: "#e68585", borderColor: "#4a2222" }}
-            onClick={() => deleteCampaign(campaign, { toast, refresh, closeDrawer: onBack || closeDrawer })}
-          >
-            Delete
-          </button>
-        </div>
-      </div>
-
-      {/* Campaign Hero Bar: Heading on Left, KPIs on Right (Second Image) */}
+      {/* Campaign Hero Bar: Heading on Left, KPIs on Right */}
       <div className="campaign-hero-bar">
         <div className="campaign-hero-left">
-          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 4 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 6, flexWrap: "wrap" }}>
+            <button
+              className="campaign-back-btn"
+              onClick={onBack ? onBack : closeDrawer}
+              style={{ padding: "4px 10px", fontSize: 12 }}
+            >
+              ← Back to all campaigns
+            </button>
             <span className="eyebrow" style={{ margin: 0 }}>{campaign.code} · {campaign.client_name.toUpperCase()}</span>
             <span
               className="status"
@@ -1689,12 +1827,22 @@ export function CampaignDetail({ id, onBack, isPage }) {
             </span>
           </div>
           <h1 style={{ fontSize: 30, margin: "0 0 4px", letterSpacing: "-1px" }}>{campaign.title}</h1>
-          <p style={{ fontSize: 13, color: "#888", margin: 0 }}>
+          <p style={{ fontSize: 13, color: "#888", margin: "0 0 12px" }}>
             📍 {campaign.location || "Coimbatore"} &nbsp;·&nbsp; {campaign.start_date ? `${campaign.start_date} to ${campaign.end_date || "TBD"}` : "Dates TBC"}
           </p>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <button onClick={() => openDrawer(<CampaignForm campaign={campaign} />)}>Edit campaign</button>
+            <button
+              className="roster-delete"
+              style={{ color: "#e68585", borderColor: "#4a2222" }}
+              onClick={() => deleteCampaign(campaign, { toast, refresh, closeDrawer: onBack || closeDrawer })}
+            >
+              Delete
+            </button>
+          </div>
         </div>
 
-        {/* Right side KPI Stats (Second Image) */}
+        {/* Right side KPI Stats */}
         <div className="campaign-kpi-compact">
           <div className="campaign-kpi-pill">
             <label>Total Influencers</label>
@@ -1726,9 +1874,15 @@ export function CampaignDetail({ id, onBack, isPage }) {
               🂡 Cards
             </button>
           </div>
-          <button className="primary" onClick={() => openDrawer(<CampaignInfluencerForm campaignId={campaign.id} />)}>
-            ＋ Form dialog
-          </button>
+          <a
+            className="primary"
+            href={`/api/campaigns/${campaign.id}/export`}
+            download
+            title="Download formatted client Excel sheet"
+            style={{ padding: "8px 14px", textDecoration: "none", display: "inline-flex", alignItems: "center", gap: 6, borderRadius: 6, fontWeight: 600 }}
+          >
+            ↥ Export client list (Excel)
+          </a>
         </div>
       </div>
 
@@ -1782,14 +1936,27 @@ export function CampaignDetail({ id, onBack, isPage }) {
 
                   <div className="roster-meta">
                     {inf.profile_url && (
-                      <span className="roster-handle">
-                        {inf.platform}: <b>{inf.profile_url}</b>
+                      <a
+                        href={getProfileLink(inf.profile_url, inf.platform)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="roster-handle"
+                        style={{ textDecoration: "none", color: "#ddd" }}
+                        title="Open profile in new tab ↗"
+                      >
+                        {inf.platform}: <b style={{ textDecoration: "underline" }}>{inf.profile_url}</b> ↗
+                      </a>
+                    )}
+                    {inf.phone && <span>📞 {inf.phone}</span>}
+                    {inf.location && <span>📍 {inf.location}</span>}
+                    {inf.date_available && (
+                      <span className="roster-date">
+                        🗓 {getDayOfWeek(inf.date_available) ? `${getDayOfWeek(inf.date_available)}, ` : ""}{inf.date_available}
                       </span>
                     )}
-                    {inf.location && <span>📍 {inf.location}</span>}
-                    {inf.date_available && <span className="roster-date">🗓 {inf.date_available}</span>}
                   </div>
 
+                  {inf.deliverables && <div className="roster-deliverables">📦 <b>Deliverables:</b> {inf.deliverables}</div>}
                   {inf.remark && <p className="roster-remark">“{inf.remark}”</p>}
 
                   <div className="roster-actions">
