@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { api } from "../lib/api";
-import { CastForm, InfluencerForm, Profile, ProjectDetail, ProjectForm, ShortlistTalent, TalentForm, deleteProject } from "./drawers";
+import { CampaignDetail, CampaignForm, CastForm, InfluencerForm, Profile, ProjectDetail, ProjectForm, ShortlistTalent, TalentForm, deleteProject } from "./drawers";
 import { Field, FormError, Heading, Photo, Status, initials, money, pad2, shortDate, useData, useStudio } from "./shared";
 
 async function exportTalent(format, filters, toast) {
@@ -57,7 +57,7 @@ export function Card({ t, onFav }) {
       <div className={"portrait" + (t.photo ? "" : " noimg")} onClick={open}>
         {t.photo ? <img src={t.photo.card} alt={t.full_name} loading="lazy" /> : initials(t.full_name)}
         <button className={"heart" + (t.is_favorite ? " saved" : "")} aria-label={`Favorite ${t.full_name}`} onClick={fav}>{t.is_favorite ? "♥" : "♡"}</button>
-        <span className="image-label">{isInf && t.social_reach ? `✦ ${t.social_reach.toUpperCase()}` : (t.categories[0]?.name || "").toUpperCase()}</span>
+        <span className="image-label">{isInf ? "✦ INFLUENCER" : (t.categories[0]?.name || "").toUpperCase()}</span>
       </div>
       <div className="talentinfo">
         <div className="talentname" onClick={open}>
@@ -65,7 +65,7 @@ export function Card({ t, onFav }) {
             <h3>{t.full_name}</h3>
             {t.instagram && <small style={{ color: "#aaa", fontSize: 11, display: "block", marginTop: 2 }}>@{t.instagram.replace(/^@/, "")}</small>}
           </div>
-          <span>↗</span>
+          {isInf ? <span className="influencer-pill">✦ Influencer</span> : <span>↗</span>}
         </div>
         <div className="meta">⌖ {t.city} &nbsp;·&nbsp; {isInf && t.social_reach ? t.social_reach : `${t.age ?? "—"} years`}</div>
         <div className="tags">{tags.map((x) => <span className="tag" key={x}>{x}</span>)}</div>
@@ -78,7 +78,7 @@ export function Card({ t, onFav }) {
   );
 }
 
-// ---------------------------------------------------------------- talent directory (casts)
+// ---------------------------------------------------------------- talent directory (casts + influencers)
 export function TalentPage() {
   const { openDrawer, toast, talentQuery, setTalentQuery, version } = useStudio();
   const [tab, setTab] = useState("all");
@@ -93,7 +93,7 @@ export function TalentPage() {
   const [maxAge, setMaxAge] = useState("");
   const [maxFee, setMaxFee] = useState("");
   const [rows, setRows] = useState(null);
-  const [counts, setCounts] = useState({ all: 0, fav: 0 });
+  const [counts, setCounts] = useState({ all: 0, cast: 0, inf: 0, fav: 0 });
   const { data: terms } = useData(() => api.get("terms/", { kind: "category" }));
   const { data: places } = useData(() => api.get("talent/cities/"));
 
@@ -106,17 +106,24 @@ export function TalentPage() {
     return () => clearTimeout(t);
   }, [query]);
 
+  const typeParam = tab === "cast" ? "cast" : tab === "influencers" ? "influencer" : "";
   const params = {
-    type: "cast",
+    ...(typeParam ? { type: typeParam } : {}),
     q: debounced, category: cat, gender, city: loc, actual_age_min: minAge, actual_age_max: maxAge, fee_max: maxFee,
     favorite: tab === "fav" ? "1" : "", sort: tab === "recent" || sort === "recent" ? "newest" : sort === "fee" ? "fee" : "name",
     page_size: tab === "recent" ? 4 : 200,
   };
+
   useEffect(() => {
     let alive = true;
     api.get("talent/", params).then((d) => alive && setRows(d)).catch((e) => toast(e.message));
-    Promise.all([api.get("talent/", { type: "cast", page_size: 1 }), api.get("talent/", { type: "cast", page_size: 1, favorite: "1" })])
-      .then(([a, f]) => alive && setCounts({ all: a.count, fav: f.count }))
+    Promise.all([
+      api.get("talent/", { page_size: 1 }),
+      api.get("talent/", { type: "cast", page_size: 1 }),
+      api.get("talent/", { type: "influencer", page_size: 1 }),
+      api.get("talent/", { favorite: "1", page_size: 1 }),
+    ])
+      .then(([a, c, inf, f]) => alive && setCounts({ all: a.count, cast: c.count, inf: inf.count, fav: f.count }))
       .catch(() => {});
     return () => {
       alive = false;
@@ -132,19 +139,21 @@ export function TalentPage() {
 
   return (
     <>
-      <Heading eye="THE RIGHT PEOPLE. THE RIGHT STORY." title="Your next great cast starts here." sub="A little less searching. A lot more creating.">
+      <Heading eye="THE RIGHT PEOPLE. THE RIGHT STORY." title="Talent directory" sub="Actors, casts, models, and digital influencers in one unified network.">
         <button onClick={() => exportTalent("xlsx", exportFilters, toast)}>↥ &nbsp; Export</button>
         <button className="primary" onClick={() => openDrawer(<TalentForm />)}>＋ &nbsp; Add talent</button>
       </Heading>
       <Stats />
       <div className="tabs">
-        <button className={tab === "all" ? "on" : ""} onClick={() => setTab("all")}>All casts <span>{counts.all}</span></button>
+        <button className={tab === "all" ? "on" : ""} onClick={() => setTab("all")}>All talent <span>{counts.all}</span></button>
+        <button className={tab === "cast" ? "on" : ""} onClick={() => setTab("cast")}>Actors & Cast <span>{counts.cast}</span></button>
+        <button className={tab === "influencers" ? "on" : ""} onClick={() => setTab("influencers")}>✦ Influencers <span>{counts.inf}</span></button>
         <button className={tab === "fav" ? "on" : ""} onClick={() => setTab("fav")}>Favorites <span>{counts.fav}</span></button>
         <button className={tab === "recent" ? "on" : ""} onClick={() => setTab("recent")}>Recently added</button>
       </div>
       <div className="toolbar">
         <div className="search">
-          <input aria-label="Search talent" placeholder="Search names, skills, or tags…" value={query} onChange={(e) => setQuery(e.target.value)} />
+          <input aria-label="Search talent" placeholder="Search names, social handles, skills, or tags…" value={query} onChange={(e) => setQuery(e.target.value)} />
         </div>
         <select aria-label="Category" value={cat} onChange={(e) => setCat(e.target.value)}>
           <option value="">All categories</option>
@@ -190,127 +199,114 @@ export function TalentPage() {
   );
 }
 
-// ---------------------------------------------------------------- influencer directory
-export function InfluencersPage() {
-  const { openDrawer, toast, talentQuery, setTalentQuery, version } = useStudio();
-  const [tab, setTab] = useState("all");
-  const [query, setQuery] = useState(talentQuery || "");
-  const [debounced, setDebounced] = useState(query);
-  const [platform, setPlatform] = useState("");
-  const [niche, setNiche] = useState("");
-  const [loc, setLoc] = useState("");
-  const [sort, setSort] = useState("recent");
-  const [filters, setFilters] = useState(false);
-  const [maxFee, setMaxFee] = useState("");
-  const [rows, setRows] = useState(null);
-  const [counts, setCounts] = useState({ all: 0, fav: 0 });
-  const { data: places } = useData(() => api.get("talent/cities/"));
+// ---------------------------------------------------------------- campaigns page
+export function CampaignsPage() {
+  const { openDrawer } = useStudio();
+  const [tab, setTab] = useState("active");
+  const [query, setQuery] = useState("");
+  const [location, setLocation] = useState("");
+  const { data: campaigns } = useData(() => api.get("campaigns/", { scope: tab, q: query, location }), [tab, query, location]);
 
-  useEffect(() => {
-    if (talentQuery) setTalentQuery("");
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-  useEffect(() => {
-    const t = setTimeout(() => setDebounced(query), 250);
-    return () => clearTimeout(t);
-  }, [query]);
-
-  const params = {
-    type: "influencer",
-    q: debounced, platform, niche, city: loc, fee_max: maxFee,
-    favorite: tab === "fav" ? "1" : "", sort: tab === "recent" || sort === "recent" ? "newest" : sort === "fee" ? "fee" : "name",
-    page_size: tab === "recent" ? 4 : 200,
-  };
-  useEffect(() => {
-    let alive = true;
-    api.get("talent/", params).then((d) => alive && setRows(d)).catch((e) => toast(e.message));
-    Promise.all([
-      api.get("talent/", { type: "influencer", page_size: 1 }),
-      api.get("talent/", { type: "influencer", page_size: 1, favorite: "1" }),
-    ])
-      .then(([a, f]) => alive && setCounts({ all: a.count, fav: f.count }))
-      .catch(() => {});
-    return () => {
-      alive = false;
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [JSON.stringify(params), version]);
-
-  const reset = () => {
-    setMaxFee(""); setQuery(""); setPlatform(""); setNiche(""); setLoc("");
-  };
-  const exportFilters = { ...params, page_size: undefined };
-  const shown = rows ? rows.results : [];
+  const list = campaigns || [];
 
   return (
     <>
-      <Heading eye="CREATORS, REACH & DIGITAL STARS." title="Influencer directory" sub="Social creators, vloggers, and digital voices for brand campaigns.">
-        <button onClick={() => exportTalent("xlsx", exportFilters, toast)}>↥ &nbsp; Export</button>
-        <button className="primary" onClick={() => openDrawer(<InfluencerForm />)}>＋ &nbsp; Add influencer</button>
+      <Heading eye="INFLUENCER CAMPAIGNS & CLIENT ROSTERS." title="Campaigns" sub="Brand activations, locked influencer rates, and finalized client deliveries.">
+        <button className="primary" onClick={() => openDrawer(<CampaignForm />)}>＋ &nbsp; New campaign</button>
       </Heading>
+
       <div className="tabs">
-        <button className={tab === "all" ? "on" : ""} onClick={() => setTab("all")}>All influencers <span>{counts.all}</span></button>
-        <button className={tab === "fav" ? "on" : ""} onClick={() => setTab("fav")}>Favorites <span>{counts.fav}</span></button>
-        <button className={tab === "recent" ? "on" : ""} onClick={() => setTab("recent")}>Recently added</button>
+        <button className={tab === "active" ? "on" : ""} onClick={() => setTab("active")}>
+          Active campaigns
+        </button>
+        <button className={tab === "completed" ? "on" : ""} onClick={() => setTab("completed")}>
+          Completed
+        </button>
       </div>
+
       <div className="toolbar">
         <div className="search">
-          <input aria-label="Search influencers" placeholder="Search creators by name, @handle, niche, or city…" value={query} onChange={(e) => setQuery(e.target.value)} />
+          <input
+            placeholder="Search campaigns by title, client, or city (e.g. Coimbatore)…"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+          />
         </div>
-        <select aria-label="Platform" value={platform} onChange={(e) => setPlatform(e.target.value)}>
-          <option value="">All platforms</option>
-          <option value="Instagram">Instagram</option>
-          <option value="YouTube">YouTube</option>
-          <option value="TikTok">TikTok</option>
-          <option value="Facebook">Facebook</option>
-          <option value="LinkedIn">LinkedIn</option>
-        </select>
-        <select aria-label="Niche" value={niche} onChange={(e) => setNiche(e.target.value)}>
-          <option value="">All niches</option>
-          <option value="Lifestyle">Lifestyle</option>
-          <option value="Fashion">Fashion</option>
-          <option value="Beauty">Beauty & Makeup</option>
-          <option value="Tech">Tech & Gadgets</option>
-          <option value="Food">Food & Culinary</option>
-          <option value="Fitness">Fitness & Health</option>
-          <option value="Travel">Travel & Vlogs</option>
-          <option value="Comedy">Comedy & Skits</option>
-          <option value="Parenting">Parenting</option>
-          <option value="Entertainment">Entertainment</option>
-        </select>
-        <select aria-label="Location" value={loc} onChange={(e) => setLoc(e.target.value)}>
-          <option value="">All locations</option>
-          {(places?.cities || []).map((c) => <option key={c}>{c}</option>)}
-        </select>
-        <button onClick={() => setFilters(!filters)}>☷ &nbsp; Filters {filters ? "−" : "+"}</button>
+        <input
+          placeholder="Filter city (e.g. Coimbatore)…"
+          value={location}
+          style={{ maxWidth: 220 }}
+          onChange={(e) => setLocation(e.target.value)}
+        />
       </div>
-      {filters && (
-        <div className="filterpanel">
-          <label>Max collab fee ₹<input type="number" value={maxFee} onChange={(e) => setMaxFee(e.target.value)} /></label>
-          <button onClick={reset}>Reset filters</button>
-        </div>
-      )}
-      <div className="results">
-        <span>Showing <b>{rows ? rows.count : 0} influencers</b> in your network</span>
-        <span>
-          Sort by{" "}
-          <select aria-label="Sort influencers" value={sort} onChange={(e) => setSort(e.target.value)}>
-            <option value="recent">Recently added</option>
-            <option value="name">Name A–Z</option>
-            <option value="fee">Lowest collab fee</option>
-          </select>
-        </span>
-      </div>
-      <div className="grid">
-        {rows && shown.map((t) => <Card key={t.id} t={t} />)}
-        {rows && shown.length === 0 && (
+
+      <div className="projectgrid">
+        {list.map((c) => (
+          <article className="project campaign-card" key={c.id}>
+            <div
+              className="project-open"
+              role="button"
+              tabIndex={0}
+              onClick={() => openDrawer(<CampaignDetail id={c.id} />)}
+              onKeyDown={(e) => e.key === "Enter" && openDrawer(<CampaignDetail id={c.id} />)}
+            >
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 18 }}>
+                <div className="projecticon" style={{ marginBottom: 0, background: "#1c2419", color: "#b9ff66" }}>✧</div>
+                <span className="status" style={{ background: c.status === "active" ? "#1b2e1be8" : "#222", color: c.status === "active" ? "#95f589" : "#aaa" }}>
+                  {c.status.toUpperCase()}
+                </span>
+              </div>
+
+              <small style={{ letterSpacing: 1.2, fontWeight: 600 }}>{c.client_name ? c.client_name.toUpperCase() : "CLIENT"}</small>
+              <h2 style={{ margin: "8px 0 10px", fontSize: 18 }}>{c.title}</h2>
+              <p style={{ margin: "0 0 16px", color: "#aaa", fontSize: 12 }}>
+                📍 {c.location || "Coimbatore"} &nbsp;·&nbsp; {c.start_date ? `${c.start_date} to ${c.end_date || "TBD"}` : "Dates TBD"}
+              </p>
+
+              {/* Roster & Budget summary */}
+              <div className="campaign-card-kpis">
+                <div>
+                  <small style={{ margin: 0 }}>INFLUENCERS</small>
+                  <strong style={{ fontSize: 16 }}>{c.influencers_count}</strong>
+                </div>
+                <div>
+                  <small style={{ margin: 0 }}>FINALISED</small>
+                  <strong style={{ fontSize: 16, color: "var(--accent)" }}>{c.finalised_count}</strong>
+                </div>
+                <div>
+                  <small style={{ margin: 0 }}>AGREED RATE</small>
+                  <strong style={{ fontSize: 16, color: "#6ef0a3" }}>₹{c.total_fixed_rate.toLocaleString("en-IN")}</strong>
+                </div>
+              </div>
+
+              {/* Avatars preview */}
+              {c.preview_photos && c.preview_photos.length > 0 && (
+                <div className="campaign-avatars-preview">
+                  {c.preview_photos.map((src, i) => (
+                    <img key={i} src={src} alt="Influencer" className="mini" style={{ width: 28, height: 28, marginLeft: i > 0 ? -8 : 0, border: "2px solid #111" }} />
+                  ))}
+                  <span style={{ fontSize: 11, color: "#888", marginLeft: 8 }}>{c.influencers_count} attached</span>
+                </div>
+              )}
+            </div>
+
+            <div className="actions" style={{ marginTop: 18 }}>
+              <button onClick={() => openDrawer(<CampaignDetail id={c.id} />)}>Open roster →</button>
+              <button onClick={() => openDrawer(<CampaignForm campaign={c} />)}>Edit</button>
+            </div>
+          </article>
+        ))}
+
+        {campaigns && list.length === 0 && (
           <div className="empty">
-            No influencers found.
+            {tab === "completed" ? "No completed campaigns." : "No active campaigns found. Create one to begin."}
             <br />
-            <button className="primary" style={{ marginTop: 14 }} onClick={() => openDrawer(<InfluencerForm />)}>＋ Add your first influencer</button>
+            <button className="primary" style={{ marginTop: 14 }} onClick={() => openDrawer(<CampaignForm />)}>
+              ＋ Create first campaign
+            </button>
           </div>
         )}
-        {!rows && <div className="empty">Loading your influencer directory…</div>}
+        {!campaigns && <div className="empty">Loading campaigns…</div>}
       </div>
     </>
   );

@@ -798,3 +798,550 @@ export function CancelCast({ project, role, name }) {
     </>
   );
 }
+
+// ---------------------------------------------------------------- Campaign Form
+export function CampaignForm({ campaign = null }) {
+  const { closeDrawer, refresh, toast, openDrawer } = useStudio();
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState(null);
+
+  async function submit(e) {
+    e.preventDefault();
+    const f = new FormData(e.target);
+    const body = {
+      title: f.get("title"),
+      client_name: f.get("client_name"),
+      location: f.get("location"),
+      start_date: f.get("start_date") || null,
+      end_date: f.get("end_date") || null,
+      budget: f.get("budget") ? Number(f.get("budget")) : null,
+      status: f.get("status") || "active",
+      notes: f.get("notes") || "",
+    };
+    setBusy(true);
+    setError(null);
+    try {
+      let res;
+      if (campaign) {
+        res = await api.patch(`campaigns/${campaign.id}/`, body);
+        toast("Campaign updated");
+      } else {
+        res = await api.post("campaigns/", body);
+        toast("Campaign created");
+      }
+      refresh();
+      openDrawer(<CampaignDetail id={res.id} />);
+    } catch (err) {
+      setError(err);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <>
+      <ModalHead title={campaign ? "Edit campaign" : "New campaign"} />
+      <p style={{ marginBottom: 20 }}>Plan brand activations, influencer rosters, and finalized client budgets.</p>
+      <form onSubmit={submit}>
+        <div className="formgrid">
+          <Field label="Campaign Title *" name="title" value={campaign?.title} required placeholder="e.g. Summer Launch · Coimbatore" />
+          <Field label="Client / Brand Name *" name="client_name" value={campaign?.client_name} required placeholder="e.g. Malabar Gold, Myntra, Trends" />
+          <Field label="Target City / Location *" name="location" value={campaign?.location || "Coimbatore"} required placeholder="e.g. Coimbatore, Kochi, Bangalore" />
+          <label className="field">
+            Campaign Status
+            <select name="status" defaultValue={campaign?.status || "active"}>
+              <option value="active">Active / In Progress</option>
+              <option value="draft">Planning / Draft</option>
+              <option value="completed">Completed / Delivered</option>
+              <option value="cancelled">Cancelled</option>
+            </select>
+          </label>
+          <label className="field">
+            Start Date
+            <input type="date" name="start_date" defaultValue={campaign?.start_date || ""} />
+          </label>
+          <label className="field">
+            End Date
+            <input type="date" name="end_date" defaultValue={campaign?.end_date || ""} />
+          </label>
+          <Field label="Total Client Budget ₹" name="budget" type="number" value={campaign?.budget} placeholder="e.g. 500000" />
+          <label className="field full">
+            Campaign Brief & Remarks
+            <textarea name="notes" defaultValue={campaign?.notes || ""} placeholder="Deliverables, reels count, brand guidelines, etc." />
+          </label>
+        </div>
+        <FormError error={error} />
+        <div className="formactions">
+          <button type="button" onClick={closeDrawer}>Cancel</button>
+          <button className="primary" disabled={busy}>{busy ? "Saving…" : campaign ? "Save changes" : "Create campaign"}</button>
+        </div>
+      </form>
+    </>
+  );
+}
+
+// ---------------------------------------------------------------- Campaign Influencer Form
+export function CampaignInfluencerForm({ campaignId, initialData = null }) {
+  const { openDrawer, refresh, toast } = useStudio();
+  const [name, setName] = useState(initialData?.name || "");
+  const [talentId, setTalentId] = useState(initialData?.talent_id || null);
+  const [profileUrl, setProfileUrl] = useState(initialData?.profile_url || "");
+  const [platform, setPlatform] = useState(initialData?.platform || "Instagram");
+  const [location, setLocation] = useState(initialData?.location || "Coimbatore");
+  const [rateFixed, setRateFixed] = useState(initialData?.rate_fixed || "");
+  const [dateAvailable, setDateAvailable] = useState(initialData?.date_available || "");
+  const [status, setStatus] = useState(initialData?.status || "finalised");
+  const [remark, setRemark] = useState(initialData?.remark || "");
+  const [photoPreview, setPhotoPreview] = useState(initialData?.photo_url || "");
+  const [suggestions, setSuggestions] = useState([]);
+  const [showDropdown, setShowDropdown] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState(null);
+
+  // Autocomplete fetch when user types name
+  useEffect(() => {
+    if (!name || talentId || initialData) {
+      setSuggestions([]);
+      return;
+    }
+    const timer = setTimeout(() => {
+      api.get("talent/", { q: name.trim(), page_size: 5 })
+        .then((res) => {
+          if (res && res.results && res.results.length) {
+            setSuggestions(res.results);
+            setShowDropdown(true);
+          } else {
+            setSuggestions([]);
+            setShowDropdown(false);
+          }
+        })
+        .catch(() => setSuggestions([]));
+    }, 200);
+    return () => clearTimeout(timer);
+  }, [name, talentId, initialData]);
+
+  function pickSuggestion(t) {
+    setName(t.full_name);
+    setTalentId(t.id);
+    setShowDropdown(false);
+    if (t.photo?.card || t.photo?.thumb) {
+      setPhotoPreview(t.photo.card || t.photo.thumb);
+    }
+    if (t.instagram) {
+      setProfileUrl(t.instagram.startsWith("@") ? t.instagram : `@${t.instagram}`);
+    }
+    if (t.city) setLocation(t.city);
+    if (t.expected_fee) setRateFixed(t.expected_fee);
+    if (t.primary_platform) setPlatform(t.primary_platform);
+  }
+
+  async function submit(e) {
+    e.preventDefault();
+    setBusy(true);
+    setError(null);
+    try {
+      const form = e.target;
+      const fd = new FormData(form);
+      if (talentId) fd.set("talent_id", talentId);
+      fd.set("name", name);
+      fd.set("profile_url", profileUrl);
+      fd.set("platform", platform);
+      fd.set("location", location);
+      fd.set("rate_fixed", rateFixed);
+      fd.set("date_available", dateAvailable);
+      fd.set("status", status);
+      fd.set("remark", remark);
+
+      if (initialData?.id) {
+        await api.patch(`campaigns/${campaignId}/influencers/${initialData.id}/`, {
+          name,
+          profile_url: profileUrl,
+          platform,
+          location,
+          rate_fixed: rateFixed,
+          date_available: dateAvailable,
+          status,
+          remark,
+        });
+        toast("Influencer details updated!");
+      } else {
+        await api.post(`campaigns/${campaignId}/influencers/`, fd);
+        toast("Influencer added to campaign & saved to Talent directory!");
+      }
+      refresh();
+      openDrawer(<CampaignDetail id={campaignId} />);
+    } catch (err) {
+      setError(err);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <>
+      <ModalHead title={initialData ? "Edit campaign influencer" : "Add influencer to campaign"} />
+      <p style={{ marginBottom: 20 }}>
+        {talentId
+          ? "✓ Linked to talent profile in your directory."
+          : "✦ Enter influencer details. New creators will automatically be saved into your Talent directory under the 'Influencer' tag."}
+      </p>
+
+      <form onSubmit={submit}>
+        <div className="formgrid">
+          {/* Name Field with Auto-Suggest */}
+          <div className="field full" style={{ position: "relative" }}>
+            <label>
+              Influencer Name *
+              <input
+                required
+                value={name}
+                autoComplete="off"
+                placeholder="Type influencer name (auto-fetches existing talent)…"
+                onChange={(e) => {
+                  setName(e.target.value);
+                  setTalentId(null);
+                }}
+              />
+            </label>
+
+            {showDropdown && suggestions.length > 0 && (
+              <div className="talent-autocomplete">
+                <div className="autocomplete-header">Found in Talent Directory — click to auto-fetch details:</div>
+                {suggestions.map((s) => (
+                  <div key={s.id} className="autocomplete-item" onClick={() => pickSuggestion(s)}>
+                    <div className="autocomplete-avatar">
+                      {s.photo ? <img src={s.photo.card} alt={s.full_name} /> : s.full_name[0]}
+                    </div>
+                    <div className="autocomplete-info">
+                      <strong>{s.full_name}</strong>
+                      <small>{s.instagram ? `@${s.instagram.replace(/^@/, '')}` : s.city || "Talent"} · {s.talent_type === "influencer" ? "✦ Influencer" : "Cast"}</small>
+                    </div>
+                    <span className="autocomplete-pick">Auto-fetch ↗</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Photo Preview & Upload */}
+          <div className="field full">
+            <label>Influencer Photo</label>
+            <div style={{ display: "flex", gap: 16, alignItems: "center", marginTop: 4 }}>
+              {photoPreview ? (
+                <img src={photoPreview} alt="Preview" style={{ width: 60, height: 75, objectFit: "cover", borderRadius: 6, border: "1px solid #444" }} />
+              ) : (
+                <div style={{ width: 60, height: 75, background: "#1a1a1a", borderRadius: 6, display: "grid", placeItems: "center", color: "#666", fontSize: 24 }}>✦</div>
+              )}
+              <div style={{ flex: 1 }}>
+                <input
+                  type="file"
+                  name="photo"
+                  accept="image/*"
+                  onChange={(e) => {
+                    const f = e.target.files[0];
+                    if (f) setPhotoPreview(URL.createObjectURL(f));
+                  }}
+                />
+                <small style={{ color: "#888", marginTop: 4 }}>Select a photo (JPG, PNG, WebP up to 25 MB)</small>
+              </div>
+            </div>
+          </div>
+
+          {/* Social Handle */}
+          <label className="field">
+            Profile / Handle *
+            <input
+              required
+              value={profileUrl}
+              placeholder="e.g. @anjalimenon or URL"
+              onChange={(e) => setProfileUrl(e.target.value)}
+            />
+          </label>
+
+          {/* Primary Platform */}
+          <label className="field">
+            Platform
+            <select value={platform} onChange={(e) => setPlatform(e.target.value)}>
+              <option value="Instagram">Instagram</option>
+              <option value="YouTube">YouTube</option>
+              <option value="TikTok">TikTok</option>
+              <option value="Facebook">Facebook</option>
+              <option value="LinkedIn">LinkedIn</option>
+            </select>
+          </label>
+
+          {/* Location */}
+          <label className="field">
+            Location / City *
+            <input
+              required
+              value={location}
+              placeholder="e.g. Coimbatore, Kochi"
+              onChange={(e) => setLocation(e.target.value)}
+            />
+          </label>
+
+          {/* Rate Fixed */}
+          <label className="field">
+            Rate Fixed (₹) *
+            <input
+              required
+              type="number"
+              min="0"
+              value={rateFixed}
+              placeholder="Agreed amount e.g. 25000"
+              onChange={(e) => setRateFixed(e.target.value)}
+            />
+          </label>
+
+          {/* Date Available / Time Fixed */}
+          <label className="field">
+            Date Available / Time Fixed *
+            <input
+              required
+              value={dateAvailable}
+              placeholder="e.g. 2026-11-05 or Available Nov 5-7"
+              onChange={(e) => setDateAvailable(e.target.value)}
+            />
+          </label>
+
+          {/* Status */}
+          <label className="field">
+            Status in Campaign
+            <select value={status} onChange={(e) => setStatus(e.target.value)}>
+              <option value="finalised">✓ Finalised / Confirmed</option>
+              <option value="shortlisted">Shortlisted</option>
+              <option value="pitched">Pitched to Client</option>
+              <option value="completed">Completed / Posted</option>
+              <option value="declined">Declined</option>
+            </select>
+          </label>
+
+          {/* Remarks */}
+          <label className="field full">
+            Remark / Deliverables
+            <textarea
+              value={remark}
+              placeholder="e.g. 1 Reel + 2 Stories, shoot at Coimbatore store on Nov 5th."
+              onChange={(e) => setRemark(e.target.value)}
+            />
+          </label>
+        </div>
+
+        <FormError error={error} />
+
+        <div className="formactions">
+          <button type="button" onClick={() => openDrawer(<CampaignDetail id={campaignId} />)}>Back</button>
+          <button className="primary" disabled={busy}>
+            {busy ? "Saving…" : initialData ? "Save changes" : "Add to campaign & save talent"}
+          </button>
+        </div>
+      </form>
+    </>
+  );
+}
+
+// ---------------------------------------------------------------- Campaign Detail Drawer
+export function CampaignDetail({ id }) {
+  const { openDrawer, closeDrawer, toast, refresh } = useStudio();
+  const [tab, setTab] = useState("all");
+  const { data: campaign, error } = useData(() => api.get(`campaigns/${id}/`), [id]);
+
+  if (error) return <><ModalHead title="Campaign" /><p>Failed to load campaign: {error.message}</p></>;
+  if (!campaign) return <><ModalHead title="Campaign" /><div className="loading">Loading campaign roster…</div></>;
+
+  const influencers = campaign.influencers || [];
+  const finalised = influencers.filter((i) => i.status === "finalised" || i.status === "confirmed");
+  const shortlisted = influencers.filter((i) => i.status === "shortlisted" || i.status === "pitched");
+
+  const shown = tab === "finalised" ? finalised : tab === "shortlisted" ? shortlisted : influencers;
+
+  async function removeInfluencer(inf) {
+    if (!confirm(`Remove ${inf.name} from this campaign? (Their profile will remain in the Talent directory)`)) return;
+    try {
+      await api.del(`campaigns/${campaign.id}/influencers/${inf.id}/`);
+      toast(`Removed ${inf.name} from campaign.`);
+      refresh();
+      openDrawer(<CampaignDetail id={campaign.id} />);
+    } catch (err) {
+      toast(err.message);
+    }
+  }
+
+  async function changeStatus(inf, newStatus) {
+    try {
+      await api.patch(`campaigns/${campaign.id}/influencers/${inf.id}/`, { status: newStatus });
+      toast(`Status updated to ${newStatus}`);
+      refresh();
+      openDrawer(<CampaignDetail id={campaign.id} />);
+    } catch (err) {
+      toast(err.message);
+    }
+  }
+
+  return (
+    <>
+      <ModalHead title={campaign.title} />
+
+      {/* Campaign Meta Bar */}
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 20 }}>
+        <div>
+          <span className="eyebrow">{campaign.code} · {campaign.client_name.toUpperCase()}</span>
+          <p style={{ fontSize: 13, color: "#aaa", marginTop: 4 }}>
+            📍 {campaign.location || "Coimbatore"} &nbsp;·&nbsp; {campaign.start_date ? `${campaign.start_date} to ${campaign.end_date || "TBD"}` : "Dates TBC"}
+          </p>
+        </div>
+        <div className="actions">
+          <button onClick={() => openDrawer(<CampaignForm campaign={campaign} />)}>Edit</button>
+          <a
+            className="primary"
+            href={`/api/campaigns/${campaign.id}/export`}
+            download
+            title="Download formatted client Excel sheet"
+            style={{ padding: "8px 14px", textDecoration: "none", display: "inline-flex", alignItems: "center", gap: 6 }}
+          >
+            ↥ Export client list
+          </a>
+        </div>
+      </div>
+
+      {/* KPI Cards */}
+      <div className="campaign-kpi-bar">
+        <div className="campaign-kpi">
+          <label>Total Influencers</label>
+          <strong>{influencers.length}</strong>
+        </div>
+        <div className="campaign-kpi">
+          <label>Finalised Faces</label>
+          <strong style={{ color: "var(--accent)" }}>{finalised.length}</strong>
+        </div>
+        <div className="campaign-kpi">
+          <label>Agreed Client Budget</label>
+          <strong style={{ color: "#6ef0a3" }}>₹{campaign.total_fixed_rate.toLocaleString("en-IN")}</strong>
+        </div>
+      </div>
+
+      {/* Roster Header */}
+      <div className="titlebar" style={{ marginTop: 24, marginBottom: 14 }}>
+        <div>
+          <h2 style={{ margin: 0 }}>Influencers & Finalised List</h2>
+          <small>Direct input with rates, dates fixed, and auto-fetch from Talent directory.</small>
+        </div>
+        <button className="primary" onClick={() => openDrawer(<CampaignInfluencerForm campaignId={campaign.id} />)}>
+          ＋ Add influencer
+        </button>
+      </div>
+
+      {/* Filter Tabs */}
+      <div className="tabs" style={{ marginBottom: 18 }}>
+        <button className={tab === "all" ? "on" : ""} onClick={() => setTab("all")}>
+          All roster <span>{influencers.length}</span>
+        </button>
+        <button className={tab === "finalised" ? "on" : ""} onClick={() => setTab("finalised")}>
+          Finalised for Client <span>{finalised.length}</span>
+        </button>
+        <button className={tab === "shortlisted" ? "on" : ""} onClick={() => setTab("shortlisted")}>
+          Shortlisted / Pitched <span>{shortlisted.length}</span>
+        </button>
+      </div>
+
+      {/* Roster List */}
+      <div className="campaign-roster-list">
+        {shown.map((inf) => {
+          const isDone = inf.status === "finalised" || inf.status === "confirmed";
+          return (
+            <div key={inf.id} className={"campaign-roster-card" + (isDone ? " is-finalised" : "")}>
+              <div className="roster-avatar">
+                {inf.photo_url ? (
+                  <img src={inf.photo_url} alt={inf.name} />
+                ) : (
+                  <div className="roster-avatar-fallback">{inf.name[0]}</div>
+                )}
+              </div>
+
+              <div className="roster-details">
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
+                  <h3 style={{ margin: 0, fontSize: 15 }}>{inf.name}</h3>
+                  <span className="roster-rate">₹{Number(inf.rate_fixed || 0).toLocaleString("en-IN")}</span>
+                </div>
+
+                <div className="roster-meta">
+                  {inf.profile_url && (
+                    <span className="roster-handle">
+                      {inf.platform}: <b>{inf.profile_url}</b>
+                    </span>
+                  )}
+                  {inf.location && <span>📍 {inf.location}</span>}
+                  {inf.date_available && <span className="roster-date">🗓 {inf.date_available}</span>}
+                </div>
+
+                {inf.remark && <p className="roster-remark">“{inf.remark}”</p>}
+
+                <div className="roster-actions">
+                  <select
+                    className="roster-status-select"
+                    value={inf.status}
+                    onChange={(e) => changeStatus(inf, e.target.value)}
+                  >
+                    <option value="finalised">✓ Finalised</option>
+                    <option value="shortlisted">Shortlisted</option>
+                    <option value="pitched">Pitched</option>
+                    <option value="completed">Completed</option>
+                    <option value="declined">Declined</option>
+                  </select>
+
+                  <button
+                    onClick={() => openDrawer(<CampaignInfluencerForm campaignId={campaign.id} initialData={inf} />)}
+                  >
+                    Edit details
+                  </button>
+
+                  {inf.talent_id && (
+                    <button onClick={() => openDrawer(<Profile id={inf.talent_id} />)}>
+                      View profile ↗
+                    </button>
+                  )}
+
+                  <button className="roster-delete" onClick={() => removeInfluencer(inf)}>
+                    Remove
+                  </button>
+                </div>
+              </div>
+            </div>
+          );
+        })}
+
+        {shown.length === 0 && (
+          <div className="empty" style={{ padding: "40px 20px" }}>
+            No influencers in this list yet.
+            <br />
+            <button
+              className="primary"
+              style={{ marginTop: 14 }}
+              onClick={() => openDrawer(<CampaignInfluencerForm campaignId={campaign.id} />)}
+            >
+              ＋ Add influencer to campaign
+            </button>
+          </div>
+        )}
+      </div>
+
+      <div style={{ marginTop: 30, display: "flex", justifyContent: "space-between" }}>
+        <button onClick={closeDrawer}>Close</button>
+        <button onClick={() => deleteCampaign(campaign, { toast, refresh, closeDrawer })}>Delete campaign</button>
+      </div>
+    </>
+  );
+}
+
+async function deleteCampaign(c, studio) {
+  if (!confirm(`Delete campaign "${c.title}"?`)) return;
+  try {
+    await api.del(`campaigns/${c.id}/`);
+    studio.refresh();
+    studio.toast(`Campaign "${c.title}" deleted.`);
+    studio.closeDrawer();
+  } catch (err) {
+    studio.toast(err.message);
+  }
+}

@@ -258,6 +258,38 @@ const TABLES = {
     t.integer("resolved_by").unsigned().nullable();
     stamps(t);
   },
+  campaigns(t) {
+    t.increments("id");
+    t.string("title", 200);
+    t.string("client_name", 200).defaultTo("");
+    t.string("code", 30).unique();
+    t.string("location", 200).defaultTo("");
+    t.string("start_date", 10).nullable();
+    t.string("end_date", 10).nullable();
+    t.decimal("budget", 14, 2).nullable();
+    t.string("currency", 3).defaultTo("INR");
+    t.string("status", 20).defaultTo("active").index();
+    t.text("notes");
+    t.string("deleted_at", DT).nullable().index();
+    t.integer("deleted_by").unsigned().nullable();
+    stamps(t);
+  },
+  campaign_influencers(t) {
+    t.increments("id");
+    t.integer("campaign_id").unsigned().index();
+    t.integer("talent_id").unsigned().nullable().index();
+    t.string("name", 150);
+    t.string("photo_url", 255).defaultTo("");
+    t.string("profile_url", 255).defaultTo("");
+    t.string("platform", 50).defaultTo("Instagram");
+    t.string("location", 150).defaultTo("");
+    t.decimal("rate_fixed", 12, 2).nullable();
+    t.string("date_available", 80).defaultTo("");
+    t.string("status", 30).defaultTo("shortlisted").index();
+    t.text("remark");
+    t.integer("sort_order").defaultTo(0);
+    stamps(t);
+  },
   projects(t) {
     t.increments("id");
     t.string("title", 200);

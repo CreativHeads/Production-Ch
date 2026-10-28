@@ -131,6 +131,7 @@ require("./routes/terms")(api);
 require("./routes/talent")(api);
 require("./routes/talentChildren")(api);
 require("./routes/casting")(api);
+require("./routes/campaigns")(api);
 require("./routes/dataio")(api);
 require("./routes/studio")(api);
 app.use("/api", api);

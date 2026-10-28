@@ -84,3 +84,46 @@ aside{overflow-y:auto}
   .cardfoot{flex-wrap:wrap;gap:6px}
 }
 .project .actions{flex-wrap:wrap}.project .actions button{flex:1 1 auto;white-space:nowrap;padding:9px 10px;font-size:12px}
+
+/* Influencer pill in directory cards */
+.influencer-pill{font-size:9px;padding:3px 7px;border-radius:4px;background:#241d08;color:#fce484;border:1px solid #4a3b11;font-weight:600;letter-spacing:0.3px}
+
+/* Autocomplete in Campaign Influencer Form */
+.talent-autocomplete{position:absolute;top:100%;left:0;right:0;background:#141414;border:1px solid #3a3a3a;border-radius:7px;margin-top:6px;z-index:50;box-shadow:0 12px 30px #000c;max-height:260px;overflow-y:auto}
+.autocomplete-header{font-size:10px;color:#999;padding:9px 12px;background:#0d0d0d;border-bottom:1px solid #252525;letter-spacing:0.5px}
+.autocomplete-item{display:flex;align-items:center;gap:12px;padding:10px 12px;border-bottom:1px solid #222;cursor:pointer;transition:background .15s}
+.autocomplete-item:hover{background:#202020}
+.autocomplete-avatar{width:36px;height:45px;border-radius:4px;overflow:hidden;background:#252525;display:grid;place-items:center;font-weight:600;color:#aaa;flex-shrink:0}
+.autocomplete-avatar img{width:100%;height:100%;object-fit:cover}
+.autocomplete-info{flex:1;min-width:0}
+.autocomplete-info strong{display:block;font-size:13px;color:#eee}
+.autocomplete-info small{color:#888;font-size:11px;margin-top:2px}
+.autocomplete-pick{font-size:10px;color:var(--accent);font-weight:600;white-space:nowrap;background:#202619;padding:4px 8px;border-radius:4px;border:1px solid #334424}
+
+/* Campaign Card & KPI */
+.campaign-card-kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;background:#0a0a0a;border:1px solid #1f1f1f;border-radius:6px;padding:12px 14px;margin-top:14px}
+.campaign-avatars-preview{display:flex;align-items:center;margin-top:14px}
+
+.campaign-kpi-bar{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;background:#0a0a0a;border:1px solid #252525;border-radius:8px;padding:16px 20px;margin-bottom:24px}
+.campaign-kpi label{font-size:10px;color:#888;letter-spacing:0.8px;display:block;margin-bottom:6px}
+.campaign-kpi strong{font-size:22px;letter-spacing:-0.5px;font-weight:600}
+
+/* Campaign Roster List in Drawer */
+.campaign-roster-list{display:flex;flex-direction:column;gap:12px}
+.campaign-roster-card{display:flex;gap:16px;background:#141414;border:1px solid #282828;border-radius:8px;padding:16px;transition:border .15s}
+.campaign-roster-card:hover{border-color:#444}
+.campaign-roster-card.is-finalised{border-left:3px solid var(--accent);background:radial-gradient(ellipse at 100% 0,#141d8422,transparent 70%),#141414}
+.roster-avatar{width:70px;height:90px;border-radius:6px;overflow:hidden;background:#222;flex-shrink:0;border:1px solid #333}
+.roster-avatar img{width:100%;height:100%;object-fit:cover}
+.roster-avatar-fallback{width:100%;height:100%;display:grid;place-items:center;font-size:24px;font-weight:700;color:#666;background:#1c1c1c}
+.roster-details{flex:1;min-width:0;display:flex;flex-direction:column;gap:6px}
+.roster-rate{font-size:16px;font-weight:700;color:#7bf59e;letter-spacing:-0.3px}
+.roster-meta{display:flex;gap:12px;font-size:11px;color:#888;flex-wrap:wrap;align-items:center}
+.roster-handle b{color:#ddd;font-weight:500}
+.roster-date{color:#e0be87}
+.roster-remark{font-size:11px;color:#aaa;font-style:italic;margin:4px 0 0;line-height:1.5}
+.roster-actions{display:flex;gap:8px;align-items:center;margin-top:10px;flex-wrap:wrap}
+.roster-status-select{font-size:11px;padding:6px 9px;border-radius:4px;border:1px solid #353535;background:#1b1b1b;color:#eee}
+.roster-actions button{font-size:11px;padding:6px 10px;border-radius:4px}
+.roster-delete{color:#e68585!important;border-color:#4a2222!important}
+.roster-delete:hover{background:#3a1818!important}

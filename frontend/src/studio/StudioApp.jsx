@@ -1,14 +1,14 @@
 // CreativHeads studio UI: shell (sidebar, header, footer), sign-in and page routing.
 import { useEffect, useState } from "react";
 import { api, ensureCsrf, setUnauthorizedHandler } from "../lib/api";
-import { CategoriesPage, HistoryPage, InfluencersPage, OverviewPage, ProjectsPage, ReviewsPage, SettingsPage, ShortlistsPage, TalentPage } from "./pages";
+import { CategoriesPage, HistoryPage, CampaignsPage, OverviewPage, ProjectsPage, ReviewsPage, SettingsPage, ShortlistsPage, TalentPage } from "./pages";
 import { FormError, Studio, initials, useData, useStudio, useStudioState } from "./shared";
 import "../studio.css";
 
 const NAV = [
   ["overview", "◫", "Overview", OverviewPage],
   ["talent", "♙", "Talent directory", TalentPage],
-  ["influencers", "✦", "Influencers", InfluencersPage],
+  ["campaigns", "✧", "Campaigns", CampaignsPage],
   ["projects", "▣", "Projects", ProjectsPage],
   ["shortlists", "☷", "Shortlists", ShortlistsPage],
   ["history", "↺", "Casting history", HistoryPage],
@@ -27,8 +27,8 @@ function Brand() {
 
 function Shell() {
   const s = useStudio();
-  const { data: castCount } = useData(() => api.get("talent/", { type: "cast", page_size: 1 }));
-  const { data: infCount } = useData(() => api.get("talent/", { type: "influencer", page_size: 1 }));
+  const { data: talentCount } = useData(() => api.get("talent/", { page_size: 1 }));
+  const { data: campaigns } = useData(() => api.get("campaigns", { scope: "active" }));
   const current = NAV.find((n) => n[0] === s.page) || NAV[1];
   const Page = current[3];
   const studioName = s.settings?.studio_name || "TakeBoard Studio";
@@ -45,8 +45,8 @@ function Shell() {
             <button key={id} className={current[0] === id ? "active" : ""} onClick={() => s.go(id)}>
               <span className="ico">{icon}</span>
               {name}
-              {id === "talent" && castCount && castCount.count > 0 && <em>{castCount.count}</em>}
-              {id === "influencers" && infCount && infCount.count > 0 && <em>{infCount.count}</em>}
+              {id === "talent" && talentCount && talentCount.count > 0 && <em>{talentCount.count}</em>}
+              {id === "campaigns" && campaigns && campaigns.length > 0 && <em>{campaigns.length}</em>}
             </button>
           ))}
         </nav>
