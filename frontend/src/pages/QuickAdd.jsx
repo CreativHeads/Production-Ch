@@ -37,10 +37,7 @@ export default function QuickAdd() {
   const validate = () => {
     const e = {};
     if (!f.full_name.trim()) e.full_name = "Enter the full name.";
-    if (!photo) e.photo = "Add a primary profile photo.";
     if (!f.phone.trim()) e.phone = "Enter a phone number.";
-    if (!f.city.trim()) e.city = "Enter where they live now.";
-    if (!f.categories.length) e.categories = "Choose at least one category.";
     setErrors(e);
     return !Object.keys(e).length;
   };
@@ -52,8 +49,8 @@ export default function QuickAdd() {
     setError("");
     const fd = new FormData();
     Object.entries(f).forEach(([k, v]) => k !== "categories" && v !== "" && fd.append(k, v));
-    fd.append("categories", JSON.stringify(f.categories));
-    fd.append("photo", photo);
+    if (f.categories && f.categories.length) fd.append("categories", JSON.stringify(f.categories));
+    if (photo) fd.append("photo", photo);
     if (crop) {
       fd.append("crop", JSON.stringify(crop.crop));
       fd.append("rotate", String(crop.rotate));

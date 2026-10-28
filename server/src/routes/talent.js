@@ -145,8 +145,6 @@ async function validateWrite(body, inst) {
     throw new ValidationError({ expected_fee_max: "The upper fee must be at least the lower fee." });
   }
   if ("phone" in data && !String(data.phone || "").trim()) throw new ValidationError({ phone: "A primary phone number is required." });
-  if ("city" in data && !String(data.city || "").trim()) throw new ValidationError({ city: "Current location is required." });
-  if ("categories" in rel && !rel.categories.length) throw new ValidationError({ categories: "Choose at least one category." });
   const dob = get("date_of_birth");
   if (dob && dob > localDate()) throw new ValidationError({ date_of_birth: "Date of birth can't be in the future." });
   return { data, rel };
@@ -277,8 +275,7 @@ module.exports = function (r) {
   // Full form create
   r.post("/talent", wrap(async (req, res) => {
     const v = await validateWrite(req.body, null);
-    for (const f of ["full_name", "phone", "city"]) if (!v.data[f]) throw new ValidationError({ [f]: "This field is required." });
-    if (!(v.rel.categories || []).length) throw new ValidationError({ categories: "Choose at least one category." });
+    for (const f of ["full_name", "phone"]) if (!v.data[f]) throw new ValidationError({ [f]: "This field is required." });
     await checkDuplicatesOrRaise({ ...req.body, ...v.data }, req.body.acknowledge_duplicates);
     const t = await createTalent(v, req.user);
     await T.refreshCompleteness(t.id);
@@ -286,7 +283,7 @@ module.exports = function (r) {
     res.status(201).json(await detail(t.id, req.user));
   }));
 
-  // FR-005 quick add: five required fields including the photo.
+  // Quick add: only full_name and phone are required.
   r.post("/talent/quick-add", upload.single("photo"), wrap(async (req, res) => {
     const b = req.body;
     const errors = {};
@@ -296,25 +293,19 @@ module.exports = function (r) {
     const cats = parseList(b.categories);
     if (!name) errors.full_name = ["Full name is required."];
     if (!phone) errors.phone = ["Primary phone number is required."];
-    if (!city) errors.city = ["Current location is required."];
-    if (!cats.length) errors.categories = ["Choose at least one category."];
-    if (!req.file) errors.photo = ["A primary profile photo is required."];
     if (Object.keys(errors).length) throw new ValidationError(errors);
     const payload = { full_name: name, phone, city, district: b.district || "", gender: b.gender || "", instagram: b.instagram || "", categories: cats };
     for (const opt of ["playing_age_min", "playing_age_max", "approx_age", "talent_type", "social_reach", "influencer_niche", "primary_platform"]) if (b[opt] !== undefined && b[opt] !== "") payload[opt] = b[opt];
     const v = await validateWrite(payload, null);
     await checkDuplicatesOrRaise(v.data, b.acknowledge_duplicates);
-    // Validate the photo before anything is written.
     const t = await createTalent(v, req.user);
-    try {
-      await T.addPhoto(t, req.file.buffer, { user: req.user, crop: parseCrop(b.crop), rotate: b.rotate || 0, makePrimary: true });
-    } catch (e) {
-      await db.transaction(async (trx) => {
-        for (const table of ["talent_categories", "talent_tags", "talent_skills", "talent_languages", "talent_photos"]) await trx(table).where({ talent_id: t.id }).del();
-        await trx("talent").where({ id: t.id }).del();
-      });
-      if (e instanceof T.PhotoError) throw new ValidationError({ photo: e.message });
-      throw e;
+    if (req.file) {
+      try {
+        await T.addPhoto(t, req.file.buffer, { user: req.user, crop: parseCrop(b.crop), rotate: b.rotate || 0, makePrimary: true });
+      } catch (e) {
+        if (e instanceof T.PhotoError) throw new ValidationError({ photo: e.message });
+        throw e;
+      }
     }
     await T.refreshCompleteness(t.id);
     await audit.log(req, "talent.created", { entityType: "talent", entityId: t.id, label: audit.talentLabel(t), message: "Quick add" });

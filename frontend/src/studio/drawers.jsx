@@ -31,13 +31,10 @@ export function TalentForm({ id }) {
     e && e.preventDefault();
     const form = document.getElementById("talentForm");
     const f = new FormData(form);
-    const age = Number(f.get("age"));
+    const ageVal = f.get("age");
+    const age = ageVal ? Number(ageVal) : null;
     const categories = f.getAll("category").map(Number);
-    if (!categories.length) {
-      setError("Choose at least one category.");
-      return;
-    }
-    if (age < 18 && (!String(f.get("guardian")).trim() || !String(f.get("guardianPhone")).trim())) {
+    if (age && age < 18 && (!String(f.get("guardian")).trim() || !String(f.get("guardianPhone")).trim())) {
       setError("Please add guardian name and contact for talent under 18.");
       return;
     }
@@ -51,18 +48,18 @@ export function TalentForm({ id }) {
     try {
       let talent = t;
       const core = {
-        full_name: String(f.get("name")).trim(), approx_age: age, gender: f.get("gender"), city: String(f.get("location")).trim(),
+        full_name: String(f.get("name")).trim(), approx_age: age, gender: f.get("gender") || "", city: String(f.get("location") || "").trim(),
         categories, phone: String(f.get("phone")).trim(),
       };
       if (!id) {
         const fd = new FormData();
-        Object.entries(core).forEach(([k, v]) => fd.append(k, k === "categories" ? JSON.stringify(v) : v));
-        fd.append("photo", file);
+        Object.entries(core).forEach(([k, v]) => fd.append(k, k === "categories" ? JSON.stringify(v) : (v ?? "")));
+        if (file && file.size) fd.append("photo", file);
         if (acknowledge.length) fd.append("acknowledge_duplicates", JSON.stringify(acknowledge));
         talent = await api.post("talent/quick-add/", fd);
       }
       talent = await api.patch(`talent/${talent.id}/`, {
-        ...(id ? core : {}), version: talent.version, email: String(f.get("email")).trim(), expected_fee: f.get("fee"), fee_type: "per_day",
+        ...(id ? core : {}), version: talent.version, email: String(f.get("email")).trim(), expected_fee: f.get("fee") || null, fee_type: "per_day",
         ...(acknowledge.length ? { acknowledge_duplicates: acknowledge } : {}),
       });
       if (id && file && file.size) {
@@ -105,16 +102,16 @@ export function TalentForm({ id }) {
       <form id="talentForm" onSubmit={(e) => submit(e)}>
         <div className="formgrid">
           <Field label="Full name *" name="name" value={t.full_name} required />
-          <Field label="Age *" name="age" type="number" value={t.age ?? t.approx_age} required min="1" max="100" />
+          <Field label="Age" name="age" type="number" value={t.age ?? t.approx_age} min="1" max="100" />
           <label className="field">
             Gender
             <select name="gender" defaultValue={t.gender === "male" || t.gender === "female" ? t.gender : ""}>
               {GENDERS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
             </select>
           </label>
-          <Field label="Location *" name="location" value={t.city} required />
+          <Field label="Location" name="location" value={t.city} />
           <fieldset className="field full checks">
-            <legend>Categories * <small>Choose all that apply</small></legend>
+            <legend>Categories <small>Choose all that apply</small></legend>
             <div>
               {cats.map((c) => (
                 <label key={c.id} className="check">
@@ -124,12 +121,12 @@ export function TalentForm({ id }) {
               ))}
             </div>
           </fieldset>
-          <Field label="Day rate (₹) *" name="fee" type="number" value={t.expected_fee ? Number(t.expected_fee) : ""} required min="0" />
+          <Field label="Day rate (₹)" name="fee" type="number" value={t.expected_fee ? Number(t.expected_fee) : ""} min="0" />
           <Field label="Phone *" name="phone" type="tel" value={t.phone} required />
           <Field label="Email" name="email" type="email" value={t.email} />
           <label className="field full">
-            Profile photo {id ? "" : "*"}
-            <input name="photo" type="file" accept="image/jpeg,image/png,image/webp" required={!id} />
+            Profile photo
+            <input name="photo" type="file" accept="image/jpeg,image/png,image/webp" />
             <small>JPG, PNG or WebP. Photos are cropped and resized on the server.</small>
           </label>
           <Field label="Guardian name (required under 18)" name="guardian" value={guardian?.name} />
