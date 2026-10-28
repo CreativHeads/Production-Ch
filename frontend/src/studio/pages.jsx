@@ -203,10 +203,15 @@ export function TalentPage() {
 // ---------------------------------------------------------------- campaigns page
 export function CampaignsPage() {
   const { openDrawer } = useStudio();
+  const [selectedId, setSelectedId] = useState(null);
   const [tab, setTab] = useState("all");
   const [query, setQuery] = useState("");
   const [location, setLocation] = useState("");
   const { data: allCampaigns } = useData(() => api.get("campaigns/", { scope: "all", q: query, location }), [query, location]);
+
+  if (selectedId) {
+    return <CampaignDetail id={selectedId} onBack={() => setSelectedId(null)} isPage />;
+  }
 
   const list = allCampaigns || [];
   const planningList = list.filter((c) => c.status === "draft" || c.status === "planning");
@@ -266,8 +271,8 @@ export function CampaignsPage() {
               className="project-open"
               role="button"
               tabIndex={0}
-              onClick={() => openDrawer(<CampaignDetail id={c.id} />)}
-              onKeyDown={(e) => e.key === "Enter" && openDrawer(<CampaignDetail id={c.id} />)}
+              onClick={() => setSelectedId(c.id)}
+              onKeyDown={(e) => e.key === "Enter" && setSelectedId(c.id)}
             >
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 18 }}>
                 <div className="projecticon" style={{ marginBottom: 0, background: "#1c2419", color: "#b9ff66" }}>✧</div>
@@ -317,7 +322,7 @@ export function CampaignsPage() {
             </div>
 
             <div className="actions" style={{ marginTop: 18 }}>
-              <button onClick={() => openDrawer(<CampaignDetail id={c.id} />)}>Open roster →</button>
+              <button onClick={() => setSelectedId(c.id)}>Open roster →</button>
               <button onClick={() => openDrawer(<CampaignForm campaign={c} />)}>Edit</button>
             </div>
           </article>

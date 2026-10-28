@@ -1142,13 +1142,35 @@ export function CampaignInfluencerForm({ campaignId, initialData = null }) {
 }
 
 // ---------------------------------------------------------------- Campaign Detail Drawer
-export function CampaignDetail({ id }) {
+export function CampaignDetail({ id, onBack, isPage }) {
   const { openDrawer, closeDrawer, toast, refresh } = useStudio();
   const [tab, setTab] = useState("all");
   const { data: campaign, error } = useData(() => api.get(`campaigns/${id}/`), [id]);
 
-  if (error) return <><ModalHead title="Campaign" /><p>Failed to load campaign: {error.message}</p></>;
-  if (!campaign) return <><ModalHead title="Campaign" /><div className="loading">Loading campaign roster…</div></>;
+  if (error) {
+    return (
+      <div className="campaign-detail-fullscreen">
+        {onBack && (
+          <button className="campaign-back-btn" onClick={onBack} style={{ marginBottom: 16 }}>
+            ← Back to all campaigns
+          </button>
+        )}
+        <p>Failed to load campaign: {error.message}</p>
+      </div>
+    );
+  }
+  if (!campaign) {
+    return (
+      <div className="campaign-detail-fullscreen">
+        {onBack && (
+          <button className="campaign-back-btn" onClick={onBack} style={{ marginBottom: 16 }}>
+            ← Back to all campaigns
+          </button>
+        )}
+        <div className="empty">Loading campaign roster…</div>
+      </div>
+    );
+  }
 
   const influencers = campaign.influencers || [];
   const finalised = influencers.filter((i) => i.status === "finalised" || i.status === "confirmed");
@@ -1162,7 +1184,6 @@ export function CampaignDetail({ id }) {
       await api.del(`campaigns/${campaign.id}/influencers/${inf.id}/`);
       toast(`Removed ${inf.name} from campaign.`);
       refresh();
-      openDrawer(<CampaignDetail id={campaign.id} />);
     } catch (err) {
       toast(err.message);
     }
@@ -1173,58 +1194,86 @@ export function CampaignDetail({ id }) {
       await api.patch(`campaigns/${campaign.id}/influencers/${inf.id}/`, { status: newStatus });
       toast(`Status updated to ${newStatus}`);
       refresh();
-      openDrawer(<CampaignDetail id={campaign.id} />);
     } catch (err) {
       toast(err.message);
     }
   }
 
   return (
-    <>
-      <ModalHead title={campaign.title} />
+    <div className="campaign-detail-fullscreen">
+      {/* Top Navigation Bar */}
+      <div className="campaign-topbar">
+        <button
+          className="campaign-back-btn"
+          onClick={onBack ? onBack : closeDrawer}
+        >
+          ← Back to all campaigns
+        </button>
 
-      {/* Campaign Meta Bar */}
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 20 }}>
-        <div>
-          <span className="eyebrow">{campaign.code} · {campaign.client_name.toUpperCase()}</span>
-          <p style={{ fontSize: 13, color: "#aaa", marginTop: 4 }}>
-            📍 {campaign.location || "Coimbatore"} &nbsp;·&nbsp; {campaign.start_date ? `${campaign.start_date} to ${campaign.end_date || "TBD"}` : "Dates TBC"}
-          </p>
-        </div>
         <div className="actions">
-          <button onClick={() => openDrawer(<CampaignForm campaign={campaign} />)}>Edit</button>
+          <button onClick={() => openDrawer(<CampaignForm campaign={campaign} />)}>Edit campaign</button>
           <a
             className="primary"
             href={`/api/campaigns/${campaign.id}/export`}
             download
             title="Download formatted client Excel sheet"
-            style={{ padding: "8px 14px", textDecoration: "none", display: "inline-flex", alignItems: "center", gap: 6 }}
+            style={{ padding: "8px 14px", textDecoration: "none", display: "inline-flex", alignItems: "center", gap: 6, borderRadius: 6, fontWeight: 600 }}
           >
-            ↥ Export client list
+            ↥ Export client list (Excel)
           </a>
+          <button
+            className="roster-delete"
+            style={{ color: "#e68585", borderColor: "#4a2222" }}
+            onClick={() => deleteCampaign(campaign, { toast, refresh, closeDrawer: onBack || closeDrawer })}
+          >
+            Delete
+          </button>
         </div>
       </div>
 
+      {/* Campaign Meta Bar */}
+      <div style={{ marginBottom: 28, marginTop: 10 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 8 }}>
+          <span className="eyebrow" style={{ margin: 0 }}>{campaign.code} · {campaign.client_name.toUpperCase()}</span>
+          <span
+            className="status"
+            style={{
+              background: (campaign.status === "draft" || campaign.status === "planning") ? "#29210c" : campaign.status === "active" ? "#1b2e1be8" : "#222",
+              color: (campaign.status === "draft" || campaign.status === "planning") ? "#ffd276" : campaign.status === "active" ? "#95f589" : "#aaa",
+              border: (campaign.status === "draft" || campaign.status === "planning") ? "1px solid #544114" : "1px solid rgba(255,255,255,0.1)",
+              fontSize: 10,
+              padding: "3px 8px"
+            }}
+          >
+            {(campaign.status === "draft" || campaign.status === "planning") ? "PLANNING / DRAFT" : campaign.status.toUpperCase()}
+          </span>
+        </div>
+        <h1 style={{ fontSize: 32, margin: "0 0 8px", letterSpacing: "-1px" }}>{campaign.title}</h1>
+        <p style={{ fontSize: 13, color: "#888", margin: 0 }}>
+          📍 {campaign.location || "Coimbatore"} &nbsp;·&nbsp; {campaign.start_date ? `${campaign.start_date} to ${campaign.end_date || "TBD"}` : "Dates TBC"}
+        </p>
+      </div>
+
       {/* KPI Cards */}
-      <div className="campaign-kpi-bar">
+      <div className="campaign-kpi-bar" style={{ marginBottom: 28 }}>
         <div className="campaign-kpi">
           <label>Total Influencers</label>
-          <strong>{influencers.length}</strong>
+          <strong style={{ fontSize: 26 }}>{influencers.length}</strong>
         </div>
         <div className="campaign-kpi">
           <label>Finalised Faces</label>
-          <strong style={{ color: "var(--accent)" }}>{finalised.length}</strong>
+          <strong style={{ fontSize: 26, color: "var(--accent)" }}>{finalised.length}</strong>
         </div>
         <div className="campaign-kpi">
           <label>Agreed Client Budget</label>
-          <strong style={{ color: "#6ef0a3" }}>₹{campaign.total_fixed_rate.toLocaleString("en-IN")}</strong>
+          <strong style={{ fontSize: 26, color: "#6ef0a3" }}>₹{campaign.total_fixed_rate.toLocaleString("en-IN")}</strong>
         </div>
       </div>
 
       {/* Roster Header */}
       <div className="titlebar" style={{ marginTop: 24, marginBottom: 14 }}>
         <div>
-          <h2 style={{ margin: 0 }}>Influencers & Finalised List</h2>
+          <h2 style={{ margin: 0, fontSize: 20 }}>Influencers & Finalised List</h2>
           <small>Direct input with rates, dates fixed, and auto-fetch from Talent directory.</small>
         </div>
         <button className="primary" onClick={() => openDrawer(<CampaignInfluencerForm campaignId={campaign.id} />)}>
@@ -1261,7 +1310,7 @@ export function CampaignDetail({ id }) {
 
               <div className="roster-details">
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
-                  <h3 style={{ margin: 0, fontSize: 15 }}>{inf.name}</h3>
+                  <h3 style={{ margin: 0, fontSize: 16 }}>{inf.name}</h3>
                   <span className="roster-rate">₹{Number(inf.rate_fixed || 0).toLocaleString("en-IN")}</span>
                 </div>
 
@@ -1312,7 +1361,7 @@ export function CampaignDetail({ id }) {
         })}
 
         {shown.length === 0 && (
-          <div className="empty" style={{ padding: "40px 20px" }}>
+          <div className="empty" style={{ padding: "50px 20px" }}>
             No influencers in this list yet.
             <br />
             <button
@@ -1326,11 +1375,13 @@ export function CampaignDetail({ id }) {
         )}
       </div>
 
-      <div style={{ marginTop: 30, display: "flex", justifyContent: "space-between" }}>
-        <button onClick={closeDrawer}>Close</button>
-        <button onClick={() => deleteCampaign(campaign, { toast, refresh, closeDrawer })}>Delete campaign</button>
-      </div>
-    </>
+      {!onBack && (
+        <div style={{ marginTop: 30, display: "flex", justifyContent: "space-between" }}>
+          <button onClick={closeDrawer}>Close</button>
+          <button onClick={() => deleteCampaign(campaign, { toast, refresh, closeDrawer })}>Delete campaign</button>
+        </div>
+      )}
+    </div>
   );
 }
 
