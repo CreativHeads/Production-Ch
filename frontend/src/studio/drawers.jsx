@@ -1205,6 +1205,94 @@ function getProfileLink(url, platform = "Instagram") {
   return `https://instagram.com/${handle}`;
 }
 
+function cleanPhone(phone) {
+  if (!phone) return "";
+  const s = String(phone).trim();
+  if (/^0+$/.test(s) || s.toLowerCase() === "null" || s.toLowerCase() === "undefined") return "";
+  return s;
+}
+
+function formatRate(val) {
+  if (val === null || val === undefined || val === "") return "";
+  const n = Number(val);
+  if (isNaN(n)) return String(val);
+  return Number.isInteger(n) ? String(n) : String(n);
+}
+
+function ExcelPhotoCell({ photoUrl, name, onUpload }) {
+  const [isDragOver, setIsDragOver] = useState(false);
+  const fileInputRef = useRef(null);
+
+  const handleFile = (file) => {
+    if (!file) return;
+    if (file.type && !file.type.startsWith("image/")) return;
+    onUpload(file);
+  };
+
+  const handlePaste = (e) => {
+    const items = e.clipboardData?.items;
+    if (!items) return;
+    for (const item of items) {
+      if (item.type.indexOf("image") !== -1) {
+        const file = item.getAsFile();
+        if (file) {
+          e.preventDefault();
+          e.stopPropagation();
+          handleFile(file);
+          break;
+        }
+      }
+    }
+  };
+
+  return (
+    <label
+      tabIndex={0}
+      className={`excel-grid-photo-cell ${isDragOver ? "is-drag-over" : ""}`}
+      title="Click to upload, drag & drop image, or paste (Ctrl+V)"
+      onDragOver={(e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        setIsDragOver(true);
+      }}
+      onDragLeave={(e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        setIsDragOver(false);
+      }}
+      onDrop={(e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        setIsDragOver(false);
+        const file = e.dataTransfer.files?.[0];
+        if (file) handleFile(file);
+      }}
+      onPaste={handlePaste}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          fileInputRef.current?.click();
+        }
+      }}
+    >
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*"
+        style={{ display: "none" }}
+        onChange={(e) => {
+          if (e.target.files?.[0]) handleFile(e.target.files[0]);
+        }}
+      />
+      {photoUrl ? (
+        <img src={photoUrl} alt={name || ""} />
+      ) : (
+        <span>{name ? name[0] : "✦"}</span>
+      )}
+    </label>
+  );
+}
+
 // ---------------------------------------------------------------- Campaign Excel Spreadsheet Component
 function CampaignExcelSpreadsheet({ campaign, shown, removeInfluencer, changeStatus, openDrawer, refresh, toast }) {
   const [rows, setRows] = useState(shown);
@@ -1400,22 +1488,32 @@ function CampaignExcelSpreadsheet({ campaign, shown, removeInfluencer, changeSta
               const dayOfWeek = getDayOfWeek(inf.date_available);
               const profileLink = getProfileLink(inf.profile_url, inf.platform);
               return (
-                <tr key={inf.id} className={isDone ? "is-finalised-row" : ""}>
+                <tr
+                  key={inf.id}
+                  className={isDone ? "is-finalised-row" : ""}
+                  onPaste={(e) => {
+                    const items = e.clipboardData?.items;
+                    if (!items) return;
+                    for (const item of items) {
+                      if (item.type && item.type.startsWith("image/")) {
+                        const file = item.getAsFile();
+                        if (file) {
+                          e.preventDefault();
+                          handlePhotoUpload(inf.id, file);
+                          toast("Photo pasted and uploaded ✓");
+                          break;
+                        }
+                      }
+                    }
+                  }}
+                >
                   <td style={{ textAlign: "center", color: "#666", fontSize: 11 }}>{idx + 1}</td>
                   <td style={{ textAlign: "center", padding: "3px" }}>
-                    <label className="excel-grid-photo-cell" title="Click to upload or replace photo">
-                      <input
-                        type="file"
-                        accept="image/*"
-                        style={{ display: "none" }}
-                        onChange={(e) => handlePhotoUpload(inf.id, e.target.files[0])}
-                      />
-                      {inf.photo_url ? (
-                        <img src={inf.photo_url} alt={inf.name} />
-                      ) : (
-                        <span>{inf.name ? inf.name[0] : "✦"}</span>
-                      )}
-                    </label>
+                    <ExcelPhotoCell
+                      photoUrl={inf.photo_url}
+                      name={inf.name}
+                      onUpload={(f) => handlePhotoUpload(inf.id, f)}
+                    />
                   </td>
                   <td>
                     <input
@@ -1429,9 +1527,9 @@ function CampaignExcelSpreadsheet({ campaign, shown, removeInfluencer, changeSta
                     <input
                       className="excel-grid-input"
                       placeholder="Phone / WhatsApp"
-                      value={inf.phone || ""}
+                      value={cleanPhone(inf.phone)}
                       onChange={(e) => handleCellChange(inf.id, "phone", e.target.value)}
-                      onBlur={(e) => handleAutoSave(inf.id, "phone", e.target.value)}
+                      onBlur={(e) => handleAutoSave(inf.id, "phone", cleanPhone(e.target.value))}
                     />
                   </td>
                   <td>
@@ -1486,15 +1584,26 @@ function CampaignExcelSpreadsheet({ campaign, shown, removeInfluencer, changeSta
                     />
                   </td>
                   <td>
-                    <input
-                      type="number"
-                      className="excel-grid-input excel-grid-num"
-                      placeholder="0"
-                      value={inf.rate_fixed ?? ""}
-                      style={{ color: isDone ? "#7bf59e" : "#ddd" }}
-                      onChange={(e) => handleCellChange(inf.id, "rate_fixed", e.target.value)}
-                      onBlur={(e) => handleAutoSave(inf.id, "rate_fixed", e.target.value)}
-                    />
+                    <div className="excel-rate-cell">
+                      <span className="excel-rate-currency">₹</span>
+                      <input
+                        type="text"
+                        inputMode="numeric"
+                        className="excel-grid-input excel-grid-num"
+                        placeholder="0"
+                        value={formatRate(inf.rate_fixed)}
+                        style={{ color: isDone ? "#7bf59e" : "#ddd" }}
+                        onChange={(e) => {
+                          const v = e.target.value.replace(/[^0-9.]/g, "");
+                          handleCellChange(inf.id, "rate_fixed", v);
+                        }}
+                        onBlur={(e) => {
+                          const v = e.target.value.trim();
+                          const num = v ? Number(v) : null;
+                          handleAutoSave(inf.id, "rate_fixed", num);
+                        }}
+                      />
+                    </div>
                   </td>
                   <td>
                     <div style={{ display: "flex", alignItems: "center", gap: 5, height: "100%", paddingLeft: 4, paddingRight: 4 }}>
@@ -1556,21 +1665,14 @@ function CampaignExcelSpreadsheet({ campaign, shown, removeInfluencer, changeSta
             <tr style={{ background: "rgba(255,255,255,0.015)" }}>
               <td style={{ textAlign: "center", color: "var(--accent)", fontSize: 13, fontWeight: 700 }}>＋</td>
               <td style={{ textAlign: "center", padding: "3px" }}>
-                <label className="excel-grid-photo-cell" title="Click to upload photo">
-                  <input
-                    type="file"
-                    accept="image/*"
-                    style={{ display: "none" }}
-                    onChange={(e) => {
-                      const f = e.target.files[0];
-                      if (f) {
-                        setNewPhotoFile(f);
-                        setNewPhotoPreview(URL.createObjectURL(f));
-                      }
-                    }}
-                  />
-                  {newPhotoPreview ? <img src={newPhotoPreview} alt="" /> : <span style={{ opacity: 0.5 }}>📷</span>}
-                </label>
+                <ExcelPhotoCell
+                  photoUrl={newPhotoPreview}
+                  name={newName}
+                  onUpload={(f) => {
+                    setNewPhotoFile(f);
+                    setNewPhotoPreview(URL.createObjectURL(f));
+                  }}
+                />
               </td>
               <td style={{ position: "relative" }}>
                 <input
@@ -1598,7 +1700,7 @@ function CampaignExcelSpreadsheet({ campaign, shown, removeInfluencer, changeSta
                         </div>
                         <div className="autocomplete-info">
                           <strong>{s.full_name}</strong>
-                          <small>{s.phone ? `📞 ${s.phone} · ` : ""}{s.instagram ? `@${s.instagram.replace(/^@/, '')}` : s.city} · {s.expected_fee ? `₹${s.expected_fee}` : "Influencer"}</small>
+                          <small>{cleanPhone(s.phone) ? `📞 ${cleanPhone(s.phone)} · ` : ""}{s.instagram ? `@${s.instagram.replace(/^@/, '')}` : s.city} · {s.expected_fee ? `₹${formatRate(s.expected_fee)}` : "Influencer"}</small>
                         </div>
                         <span className="autocomplete-pick">Autofill ↗</span>
                       </div>
@@ -1610,7 +1712,7 @@ function CampaignExcelSpreadsheet({ campaign, shown, removeInfluencer, changeSta
                 <input
                   className="excel-grid-input"
                   placeholder="Phone / WhatsApp"
-                  value={newPhone}
+                  value={cleanPhone(newPhone)}
                   onChange={(e) => setNewPhone(e.target.value)}
                   onKeyDown={(e) => e.key === "Enter" && submitNewRow()}
                 />
@@ -1667,14 +1769,18 @@ function CampaignExcelSpreadsheet({ campaign, shown, removeInfluencer, changeSta
                 />
               </td>
               <td>
-                <input
-                  type="number"
-                  className="excel-grid-input excel-grid-num"
-                  placeholder="0"
-                  value={newRate}
-                  onChange={(e) => setNewRate(e.target.value)}
-                  onKeyDown={(e) => e.key === "Enter" && submitNewRow()}
-                />
+                <div className="excel-rate-cell">
+                  <span className="excel-rate-currency">₹</span>
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    className="excel-grid-input excel-grid-num"
+                    placeholder="0"
+                    value={formatRate(newRate)}
+                    onChange={(e) => setNewRate(e.target.value.replace(/[^0-9.]/g, ""))}
+                    onKeyDown={(e) => e.key === "Enter" && submitNewRow()}
+                  />
+                </div>
               </td>
               <td>
                 <div style={{ display: "flex", alignItems: "center", gap: 5, height: "100%", paddingLeft: 4, paddingRight: 4 }}>
@@ -1815,24 +1921,28 @@ export function CampaignDetail({ id, onBack, isPage }) {
             >
               ← Back to all campaigns
             </button>
-            <span className="eyebrow" style={{ margin: 0 }}>{campaign.code} · {campaign.client_name.toUpperCase()}</span>
-            <span
-              className="status"
-              style={{
-                background: (campaign.status === "draft" || campaign.status === "planning") ? "#29210c" : campaign.status === "active" ? "#1b2e1be8" : "#222",
-                color: (campaign.status === "draft" || campaign.status === "planning") ? "#ffd276" : campaign.status === "active" ? "#95f589" : "#aaa",
-                border: (campaign.status === "draft" || campaign.status === "planning") ? "1px solid #544114" : "1px solid rgba(255,255,255,0.1)",
-                fontSize: 10,
-                padding: "2px 7px"
+            <select
+              className="campaign-status-switcher"
+              value={campaign.status}
+              aria-label="Change campaign status"
+              onChange={async (e) => {
+                const newSt = e.target.value;
+                try {
+                  await api.patch(`campaigns/${campaign.id}/`, { status: newSt });
+                  toast(`Status changed to ${newSt.toUpperCase()}`);
+                  refresh();
+                } catch (err) {
+                  toast(err.message);
+                }
               }}
             >
-              {(campaign.status === "draft" || campaign.status === "planning") ? "PLANNING / DRAFT" : campaign.status.toUpperCase()}
-            </span>
+              <option value="planning">• PLANNING / DRAFT</option>
+              <option value="active">• ACTIVE CAMPAIGN</option>
+              <option value="completed">• COMPLETED</option>
+              <option value="cancelled">• CANCELLED</option>
+            </select>
           </div>
-          <h1 style={{ fontSize: 30, margin: "0 0 4px", letterSpacing: "-1px" }}>{campaign.title}</h1>
-          <p style={{ fontSize: 13, color: "#888", margin: "0 0 12px" }}>
-            📍 {campaign.location || "Coimbatore"} &nbsp;·&nbsp; {campaign.start_date ? `${campaign.start_date} to ${campaign.end_date || "TBD"}` : "Dates TBC"}
-          </p>
+          <h1 style={{ fontSize: 30, margin: "0 0 12px", letterSpacing: "-1px" }}>{campaign.title}</h1>
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
             <button onClick={() => openDrawer(<CampaignForm campaign={campaign} />)}>Edit campaign</button>
             <button
