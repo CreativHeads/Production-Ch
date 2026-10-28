@@ -990,13 +990,14 @@ export function CampaignInfluencerForm({ campaignId, initialData = null }) {
         <div className="formgrid">
           {/* Name Field with Auto-Suggest */}
           <div className="field full" style={{ position: "relative" }}>
-            <label>
+            <label style={{ display: "flex", flexDirection: "column", gap: 6, width: "100%" }}>
               Influencer Name *
               <input
                 required
                 value={name}
                 autoComplete="off"
                 placeholder="Type influencer name (auto-fetches existing talent)…"
+                style={{ width: "100%" }}
                 onChange={(e) => {
                   setName(e.target.value);
                   setTalentId(null);
@@ -1141,10 +1142,366 @@ export function CampaignInfluencerForm({ campaignId, initialData = null }) {
   );
 }
 
-// ---------------------------------------------------------------- Campaign Detail Drawer
+// ---------------------------------------------------------------- Campaign Excel Spreadsheet Component
+function CampaignExcelSpreadsheet({ campaign, shown, removeInfluencer, changeStatus, openDrawer, refresh, toast }) {
+  const [name, setName] = useState("");
+  const [talentId, setTalentId] = useState(null);
+  const [platform, setPlatform] = useState("Instagram");
+  const [profileUrl, setProfileUrl] = useState("");
+  const [location, setLocation] = useState(campaign.location || "Coimbatore");
+  const [rateFixed, setRateFixed] = useState("");
+  const [dateAvailable, setDateAvailable] = useState(campaign.start_date || "");
+  const [status, setStatus] = useState("finalised");
+  const [remark, setRemark] = useState("");
+  const [photoFile, setPhotoFile] = useState(null);
+  const [photoPreview, setPhotoPreview] = useState(null);
+  const [suggestions, setSuggestions] = useState([]);
+  const [showDropdown, setShowDropdown] = useState(false);
+  const [adding, setAdding] = useState(false);
+
+  // Auto-suggestion from Talent directory
+  useEffect(() => {
+    if (!name || name.length < 2 || talentId) {
+      setSuggestions([]);
+      setShowDropdown(false);
+      return;
+    }
+    const timer = setTimeout(async () => {
+      try {
+        const res = await api.get("talent/", { q: name, page_size: 5 });
+        if (res && res.results) {
+          setSuggestions(res.results);
+          setShowDropdown(res.results.length > 0);
+        }
+      } catch (e) {
+        // ignore
+      }
+    }, 200);
+    return () => clearTimeout(timer);
+  }, [name, talentId]);
+
+  function pickSuggestion(s) {
+    setName(s.full_name);
+    setTalentId(s.id);
+    if (s.instagram) setProfileUrl(s.instagram.replace(/^@/, ""));
+    if (s.city) setLocation(s.city);
+    if (s.expected_fee) setRateFixed(s.expected_fee);
+    if (s.photo?.card) setPhotoPreview(s.photo.card);
+    if (s.primary_platform) setPlatform(s.primary_platform);
+    setShowDropdown(false);
+  }
+
+  async function handleAddRow(e) {
+    if (e) e.preventDefault();
+    if (!name.trim()) {
+      toast("Please enter an influencer name");
+      return;
+    }
+    setAdding(true);
+    try {
+      const fd = new FormData();
+      fd.append("name", name.trim());
+      if (talentId) fd.append("talent_id", talentId);
+      fd.append("profile_url", profileUrl.trim());
+      fd.append("platform", platform);
+      fd.append("location", location.trim());
+      if (rateFixed !== "") fd.append("rate_fixed", rateFixed);
+      if (dateAvailable.trim()) fd.append("date_available", dateAvailable.trim());
+      fd.append("status", status);
+      if (remark.trim()) fd.append("remark", remark.trim());
+      if (photoFile) fd.append("photo", photoFile);
+
+      await api.post(`campaigns/${campaign.id}/influencers/`, fd);
+      toast(`Added "${name}" to campaign sheet`);
+      setName("");
+      setTalentId(null);
+      setProfileUrl("");
+      setRateFixed("");
+      setRemark("");
+      setPhotoFile(null);
+      setPhotoPreview(null);
+      refresh();
+    } catch (err) {
+      toast(err.message);
+    } finally {
+      setAdding(false);
+    }
+  }
+
+  const totalRate = shown.reduce((acc, i) => acc + (Number(i.rate_fixed) || 0), 0);
+  const finalisedCount = shown.filter((i) => i.status === "finalised" || i.status === "confirmed").length;
+
+  return (
+    <div className="campaign-excel-card">
+      <div className="campaign-excel-tablewrap">
+        <table className="campaign-excel-table">
+          <thead>
+            <tr>
+              <th style={{ width: 36, textAlign: "center" }}>#</th>
+              <th style={{ width: 44, textAlign: "center" }}>Photo</th>
+              <th style={{ minWidth: 170 }}>Influencer Name *</th>
+              <th style={{ minWidth: 160 }}>Platform & Handle</th>
+              <th style={{ minWidth: 110 }}>Location</th>
+              <th style={{ minWidth: 105 }}>Rate Fixed (₹)</th>
+              <th style={{ minWidth: 115 }}>Date / Time Fixed</th>
+              <th style={{ minWidth: 125 }}>Status</th>
+              <th style={{ minWidth: 150 }}>Remarks / Deliverables</th>
+              <th style={{ width: 100, textAlign: "center" }}>Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            {/* Inline Excel Quick-Add Row */}
+            <tr className="excel-entry-row">
+              <td style={{ textAlign: "center", color: "var(--accent)", fontWeight: 700, fontSize: 13 }}>＋</td>
+              <td style={{ textAlign: "center" }}>
+                <label className="excel-photo-pick" title="Click to upload photo">
+                  <input
+                    type="file"
+                    accept="image/*"
+                    style={{ display: "none" }}
+                    onChange={(e) => {
+                      const f = e.target.files[0];
+                      if (f) {
+                        setPhotoFile(f);
+                        setPhotoPreview(URL.createObjectURL(f));
+                      }
+                    }}
+                  />
+                  {photoPreview ? <img src={photoPreview} alt="Thumb" /> : "📷"}
+                </label>
+              </td>
+              <td style={{ position: "relative" }}>
+                <input
+                  required
+                  placeholder="Enter name (auto-fetches)…"
+                  value={name}
+                  autoComplete="off"
+                  onChange={(e) => {
+                    setName(e.target.value);
+                    setTalentId(null);
+                  }}
+                  onKeyDown={(e) => e.key === "Enter" && handleAddRow(e)}
+                />
+                {showDropdown && suggestions.length > 0 && (
+                  <div className="talent-autocomplete" style={{ top: "100%", left: 0, minWidth: 260, zIndex: 10 }}>
+                    <div className="autocomplete-header">Found in directory — click to autofill:</div>
+                    {suggestions.map((s) => (
+                      <div key={s.id} className="autocomplete-item" onClick={() => pickSuggestion(s)}>
+                        <div className="autocomplete-avatar">
+                          {s.photo ? <img src={s.photo.card} alt={s.full_name} /> : s.full_name[0]}
+                        </div>
+                        <div className="autocomplete-info">
+                          <strong>{s.full_name}</strong>
+                          <small>{s.instagram ? `@${s.instagram.replace(/^@/, '')}` : s.city} · {s.expected_fee ? `₹${s.expected_fee}` : "Influencer"}</small>
+                        </div>
+                        <span className="autocomplete-pick">Autofill ↗</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </td>
+              <td>
+                <div style={{ display: "flex", gap: 4 }}>
+                  <select
+                    value={platform}
+                    onChange={(e) => setPlatform(e.target.value)}
+                    style={{ width: 85, flexShrink: 0 }}
+                  >
+                    <option value="Instagram">Instagram</option>
+                    <option value="YouTube">YouTube</option>
+                    <option value="Snapchat">Snapchat</option>
+                    <option value="TikTok">TikTok</option>
+                    <option value="Other">Other</option>
+                  </select>
+                  <input
+                    placeholder="@handle or URL"
+                    value={profileUrl}
+                    onChange={(e) => setProfileUrl(e.target.value)}
+                    onKeyDown={(e) => e.key === "Enter" && handleAddRow(e)}
+                  />
+                </div>
+              </td>
+              <td>
+                <input
+                  placeholder="e.g. Coimbatore"
+                  value={location}
+                  onChange={(e) => setLocation(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && handleAddRow(e)}
+                />
+              </td>
+              <td>
+                <input
+                  type="number"
+                  placeholder="₹ Rate"
+                  value={rateFixed}
+                  onChange={(e) => setRateFixed(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && handleAddRow(e)}
+                />
+              </td>
+              <td>
+                <input
+                  placeholder="e.g. 2026-11-05"
+                  value={dateAvailable}
+                  onChange={(e) => setDateAvailable(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && handleAddRow(e)}
+                />
+              </td>
+              <td>
+                <select value={status} onChange={(e) => setStatus(e.target.value)}>
+                  <option value="finalised">✓ Finalised</option>
+                  <option value="shortlisted">Shortlisted</option>
+                  <option value="pitched">Pitched</option>
+                  <option value="completed">Completed</option>
+                  <option value="declined">Declined</option>
+                </select>
+              </td>
+              <td>
+                <input
+                  placeholder="e.g. 1 Reel + 2 Stories"
+                  value={remark}
+                  onChange={(e) => setRemark(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && handleAddRow(e)}
+                />
+              </td>
+              <td style={{ textAlign: "center" }}>
+                <button
+                  type="button"
+                  className="excel-add-btn"
+                  disabled={adding}
+                  onClick={handleAddRow}
+                  title="Add influencer row to sheet"
+                >
+                  {adding ? "Adding…" : "＋ Add Row"}
+                </button>
+              </td>
+            </tr>
+
+            {/* Existing Influencer Rows */}
+            {shown.map((inf, idx) => {
+              const isDone = inf.status === "finalised" || inf.status === "confirmed";
+              return (
+                <tr key={inf.id} className={isDone ? "is-finalised-row" : ""}>
+                  <td style={{ textAlign: "center", color: "#666", fontSize: 11 }}>{idx + 1}</td>
+                  <td style={{ textAlign: "center" }}>
+                    <div style={{ width: 34, height: 42, borderRadius: 4, overflow: "hidden", background: "#222", margin: "0 auto", border: "1px solid #333" }}>
+                      {inf.photo_url ? (
+                        <img src={inf.photo_url} alt={inf.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                      ) : (
+                        <div style={{ width: "100%", height: "100%", display: "grid", placeItems: "center", color: "#777", fontWeight: 700 }}>{inf.name[0]}</div>
+                      )}
+                    </div>
+                  </td>
+                  <td>
+                    <strong style={{ fontSize: 13, color: "#fff", display: "block" }}>{inf.name}</strong>
+                    {inf.talent_id && (
+                      <small style={{ color: "var(--accent)", fontSize: 10, cursor: "pointer" }} onClick={() => openDrawer(<Profile id={inf.talent_id} />)}>
+                        ✦ Talent directory linked ↗
+                      </small>
+                    )}
+                  </td>
+                  <td>
+                    <span style={{ fontSize: 11, color: "#aaa" }}>
+                      {inf.profile_url ? (
+                        inf.profile_url.startsWith("http") ? (
+                          <a href={inf.profile_url} target="_blank" rel="noreferrer" style={{ color: "#8cb4ff", textDecoration: "underline" }}>
+                            {inf.platform}: link ↗
+                          </a>
+                        ) : (
+                          <span>{inf.platform}: <b>{inf.profile_url}</b></span>
+                        )
+                      ) : (
+                        <span style={{ color: "#666" }}>—</span>
+                      )}
+                    </span>
+                  </td>
+                  <td>
+                    <span style={{ fontSize: 11, color: "#aaa" }}>{inf.location ? `📍 ${inf.location}` : "—"}</span>
+                  </td>
+                  <td>
+                    <strong style={{ fontSize: 13, color: isDone ? "#7bf59e" : "#ddd" }}>
+                      ₹{Number(inf.rate_fixed || 0).toLocaleString("en-IN")}
+                    </strong>
+                  </td>
+                  <td>
+                    <span style={{ fontSize: 11, color: "#e0be87" }}>{inf.date_available ? `🗓 ${inf.date_available}` : "—"}</span>
+                  </td>
+                  <td>
+                    <select
+                      className="roster-status-select"
+                      value={inf.status}
+                      style={{
+                        background: isDone ? "#162814" : "#1a1a1a",
+                        color: isDone ? "#95f589" : "#bbb",
+                        borderColor: isDone ? "#2d4a25" : "#333",
+                        fontWeight: isDone ? 600 : 400,
+                      }}
+                      onChange={(e) => changeStatus(inf, e.target.value)}
+                    >
+                      <option value="finalised">✓ Finalised</option>
+                      <option value="shortlisted">Shortlisted</option>
+                      <option value="pitched">Pitched</option>
+                      <option value="completed">Completed</option>
+                      <option value="declined">Declined</option>
+                    </select>
+                  </td>
+                  <td>
+                    <span style={{ fontSize: 11, color: "#bbb", fontStyle: inf.remark ? "italic" : "normal" }}>
+                      {inf.remark || "—"}
+                    </span>
+                  </td>
+                  <td style={{ textAlign: "center", whiteSpace: "nowrap" }}>
+                    <button
+                      style={{ fontSize: 11, padding: "4px 8px", marginRight: 4 }}
+                      onClick={() => openDrawer(<CampaignInfluencerForm campaignId={campaign.id} initialData={inf} />)}
+                      title="Edit influencer full form"
+                    >
+                      ✎
+                    </button>
+                    <button
+                      className="roster-delete"
+                      style={{ fontSize: 11, padding: "4px 8px" }}
+                      onClick={() => removeInfluencer(inf)}
+                      title="Remove from campaign"
+                    >
+                      ✕
+                    </button>
+                  </td>
+                </tr>
+              );
+            })}
+
+            {shown.length === 0 && (
+              <tr>
+                <td colSpan={10} style={{ textAlign: "center", padding: "30px 15px", color: "#888" }}>
+                  No influencers in this list yet. Enter details in the top row above and click <b>＋ Add Row</b> to build your Excel sheet!
+                </td>
+              </tr>
+            )}
+          </tbody>
+          {shown.length > 0 && (
+            <tfoot>
+              <tr className="excel-footer-row">
+                <td colSpan={2} style={{ textAlign: "center" }}>TOTAL</td>
+                <td>{shown.length} Influencer{shown.length === 1 ? "" : "s"}</td>
+                <td colSpan={2}>{finalisedCount} Finalised for Client</td>
+                <td style={{ color: "#7bf59e", fontSize: 14 }}>₹{totalRate.toLocaleString("en-IN")}</td>
+                <td colSpan={4} style={{ textAlign: "right", color: "#777", fontSize: 11 }}>
+                  💡 Use "Export client list (Excel)" above to download formatted Excel
+                </td>
+              </tr>
+            </tfoot>
+          )}
+        </table>
+      </div>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------- Campaign Detail View
 export function CampaignDetail({ id, onBack, isPage }) {
   const { openDrawer, closeDrawer, toast, refresh } = useStudio();
   const [tab, setTab] = useState("all");
+  const [viewMode, setViewMode] = useState("excel");
   const { data: campaign, error } = useData(() => api.get(`campaigns/${id}/`), [id]);
 
   if (error) {
@@ -1270,15 +1627,25 @@ export function CampaignDetail({ id, onBack, isPage }) {
         </div>
       </div>
 
-      {/* Roster Header */}
+      {/* Roster Header with View Toggle */}
       <div className="titlebar" style={{ marginTop: 24, marginBottom: 14 }}>
         <div>
           <h2 style={{ margin: 0, fontSize: 20 }}>Influencers & Finalised List</h2>
-          <small>Direct input with rates, dates fixed, and auto-fetch from Talent directory.</small>
+          <small>Direct Excel spreadsheet input with rates, dates fixed, and auto-fetch from Talent directory.</small>
         </div>
-        <button className="primary" onClick={() => openDrawer(<CampaignInfluencerForm campaignId={campaign.id} />)}>
-          ＋ Add influencer
-        </button>
+        <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+          <div className="view-toggle-btns">
+            <button className={viewMode === "excel" ? "active" : ""} onClick={() => setViewMode("excel")}>
+              📊 Excel Sheet
+            </button>
+            <button className={viewMode === "cards" ? "active" : ""} onClick={() => setViewMode("cards")}>
+              🂡 Cards
+            </button>
+          </div>
+          <button className="primary" onClick={() => openDrawer(<CampaignInfluencerForm campaignId={campaign.id} />)}>
+            ＋ Form dialog
+          </button>
+        </div>
       </div>
 
       {/* Filter Tabs */}
@@ -1294,86 +1661,102 @@ export function CampaignDetail({ id, onBack, isPage }) {
         </button>
       </div>
 
-      {/* Roster List */}
-      <div className="campaign-roster-list">
-        {shown.map((inf) => {
-          const isDone = inf.status === "finalised" || inf.status === "confirmed";
-          return (
-            <div key={inf.id} className={"campaign-roster-card" + (isDone ? " is-finalised" : "")}>
-              <div className="roster-avatar">
-                {inf.photo_url ? (
-                  <img src={inf.photo_url} alt={inf.name} />
-                ) : (
-                  <div className="roster-avatar-fallback">{inf.name[0]}</div>
-                )}
-              </div>
+      {/* Excel Sheet Table View (Default) */}
+      {viewMode === "excel" && (
+        <CampaignExcelSpreadsheet
+          campaign={campaign}
+          influencers={influencers}
+          shown={shown}
+          removeInfluencer={removeInfluencer}
+          changeStatus={changeStatus}
+          openDrawer={openDrawer}
+          refresh={refresh}
+          toast={toast}
+        />
+      )}
 
-              <div className="roster-details">
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
-                  <h3 style={{ margin: 0, fontSize: 16 }}>{inf.name}</h3>
-                  <span className="roster-rate">₹{Number(inf.rate_fixed || 0).toLocaleString("en-IN")}</span>
-                </div>
-
-                <div className="roster-meta">
-                  {inf.profile_url && (
-                    <span className="roster-handle">
-                      {inf.platform}: <b>{inf.profile_url}</b>
-                    </span>
+      {/* Card View */}
+      {viewMode === "cards" && (
+        <div className="campaign-roster-list">
+          {shown.map((inf) => {
+            const isDone = inf.status === "finalised" || inf.status === "confirmed";
+            return (
+              <div key={inf.id} className={"campaign-roster-card" + (isDone ? " is-finalised" : "")}>
+                <div className="roster-avatar">
+                  {inf.photo_url ? (
+                    <img src={inf.photo_url} alt={inf.name} />
+                  ) : (
+                    <div className="roster-avatar-fallback">{inf.name[0]}</div>
                   )}
-                  {inf.location && <span>📍 {inf.location}</span>}
-                  {inf.date_available && <span className="roster-date">🗓 {inf.date_available}</span>}
                 </div>
 
-                {inf.remark && <p className="roster-remark">“{inf.remark}”</p>}
+                <div className="roster-details">
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
+                    <h3 style={{ margin: 0, fontSize: 16 }}>{inf.name}</h3>
+                    <span className="roster-rate">₹{Number(inf.rate_fixed || 0).toLocaleString("en-IN")}</span>
+                  </div>
 
-                <div className="roster-actions">
-                  <select
-                    className="roster-status-select"
-                    value={inf.status}
-                    onChange={(e) => changeStatus(inf, e.target.value)}
-                  >
-                    <option value="finalised">✓ Finalised</option>
-                    <option value="shortlisted">Shortlisted</option>
-                    <option value="pitched">Pitched</option>
-                    <option value="completed">Completed</option>
-                    <option value="declined">Declined</option>
-                  </select>
+                  <div className="roster-meta">
+                    {inf.profile_url && (
+                      <span className="roster-handle">
+                        {inf.platform}: <b>{inf.profile_url}</b>
+                      </span>
+                    )}
+                    {inf.location && <span>📍 {inf.location}</span>}
+                    {inf.date_available && <span className="roster-date">🗓 {inf.date_available}</span>}
+                  </div>
 
-                  <button
-                    onClick={() => openDrawer(<CampaignInfluencerForm campaignId={campaign.id} initialData={inf} />)}
-                  >
-                    Edit details
-                  </button>
+                  {inf.remark && <p className="roster-remark">“{inf.remark}”</p>}
 
-                  {inf.talent_id && (
-                    <button onClick={() => openDrawer(<Profile id={inf.talent_id} />)}>
-                      View profile ↗
+                  <div className="roster-actions">
+                    <select
+                      className="roster-status-select"
+                      value={inf.status}
+                      onChange={(e) => changeStatus(inf, e.target.value)}
+                    >
+                      <option value="finalised">✓ Finalised</option>
+                      <option value="shortlisted">Shortlisted</option>
+                      <option value="pitched">Pitched</option>
+                      <option value="completed">Completed</option>
+                      <option value="declined">Declined</option>
+                    </select>
+
+                    <button
+                      onClick={() => openDrawer(<CampaignInfluencerForm campaignId={campaign.id} initialData={inf} />)}
+                    >
+                      Edit details
                     </button>
-                  )}
 
-                  <button className="roster-delete" onClick={() => removeInfluencer(inf)}>
-                    Remove
-                  </button>
+                    {inf.talent_id && (
+                      <button onClick={() => openDrawer(<Profile id={inf.talent_id} />)}>
+                        View profile ↗
+                      </button>
+                    )}
+
+                    <button className="roster-delete" onClick={() => removeInfluencer(inf)}>
+                      Remove
+                    </button>
+                  </div>
                 </div>
               </div>
-            </div>
-          );
-        })}
+            );
+          })}
 
-        {shown.length === 0 && (
-          <div className="empty" style={{ padding: "50px 20px" }}>
-            No influencers in this list yet.
-            <br />
-            <button
-              className="primary"
-              style={{ marginTop: 14 }}
-              onClick={() => openDrawer(<CampaignInfluencerForm campaignId={campaign.id} />)}
-            >
-              ＋ Add influencer to campaign
-            </button>
-          </div>
-        )}
-      </div>
+          {shown.length === 0 && (
+            <div className="empty" style={{ padding: "50px 20px" }}>
+              No influencers in this list yet.
+              <br />
+              <button
+                className="primary"
+                style={{ marginTop: 14 }}
+                onClick={() => openDrawer(<CampaignInfluencerForm campaignId={campaign.id} />)}
+              >
+                ＋ Add influencer to campaign
+              </button>
+            </div>
+          )}
+        </div>
+      )}
 
       {!onBack && (
         <div style={{ marginTop: 30, display: "flex", justifyContent: "space-between" }}>
