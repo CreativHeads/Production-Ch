@@ -127,3 +127,100 @@ aside{overflow-y:auto}
 .roster-actions button{font-size:11px;padding:6px 10px;border-radius:4px}
 .roster-delete{color:#e68585!important;border-color:#4a2222!important}
 .roster-delete:hover{background:#3a1818!important}
+
+/* ---- Centered Modal Window Overhaul ---- */
+#overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.78);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  z-index: 100;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 24px;
+}
+#overlay[hidden] {
+  display: none !important;
+}
+.drawer {
+  width: 720px !important;
+  max-width: 95vw !important;
+  max-height: 88vh !important;
+  height: auto !important;
+  background: #0d0d0d !important;
+  border: 1px solid #292929 !important;
+  border-radius: 14px !important;
+  padding: 30px !important;
+  box-shadow: 0 25px 80px rgba(0, 0, 0, 0.95), 0 0 0 1px rgba(255, 255, 255, 0.08) !important;
+  overflow-y: auto !important;
+  animation: modalCenterEnter 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+}
+@keyframes modalCenterEnter {
+  from {
+    opacity: 0;
+    transform: scale(0.95) translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+.modalhead {
+  border-bottom: 1px solid #1f1f1f;
+  padding-bottom: 16px;
+  margin-bottom: 22px;
+}
+.modalhead h1, .modalhead h2 {
+  font-size: 21px;
+  font-weight: 600;
+  color: #fff;
+  letter-spacing: -0.4px;
+}
+.modalhead button {
+  width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  border: 1px solid #2d2d2d;
+  background: #181818;
+  color: #aaa;
+  font-size: 16px;
+  padding: 0;
+  transition: all .15s;
+}
+.modalhead button:hover {
+  background: #2a2a2a;
+  color: #fff;
+  border-color: #555;
+}
+.formactions {
+  border-top: 1px solid #1f1f1f;
+  padding-top: 20px;
+  margin-top: 24px;
+}
+.formgrid input, .formgrid select, .formgrid textarea {
+  border-radius: 7px;
+  border: 1px solid #2a2a2a;
+  background: #141414;
+  padding: 12px 14px;
+  transition: border-color .15s, box-shadow .15s;
+}
+.formgrid input:focus, .formgrid select:focus, .formgrid textarea:focus {
+  border-color: #666;
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.06);
+}
+@media(max-width: 600px) {
+  #overlay {
+    padding: 12px;
+  }
+  .drawer {
+    width: 100% !important;
+    max-height: 94vh !important;
+    padding: 20px 16px !important;
+    border-radius: 12px !important;
+  }
+}
