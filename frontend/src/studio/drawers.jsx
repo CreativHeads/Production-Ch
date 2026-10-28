@@ -1468,17 +1468,17 @@ function CampaignExcelSpreadsheet({ campaign, shown, removeInfluencer, changeSta
         <table className="campaign-excel-table">
           <thead>
             <tr>
-              <th style={{ width: 38, textAlign: "center" }}>#</th>
-              <th style={{ width: 44, textAlign: "center" }}>Photo</th>
+              <th style={{ width: 40, textAlign: "center" }}>#</th>
+              <th style={{ width: 60, textAlign: "center" }}>Photo</th>
               <th style={{ minWidth: 160 }}>Influencer Name *</th>
               <th style={{ minWidth: 125 }}>Phone</th>
-              <th style={{ minWidth: 160 }}>Profile / Handle</th>
-              <th style={{ minWidth: 150 }}>Deliverables</th>
-              <th style={{ minWidth: 140 }}>Remarks</th>
-              <th style={{ minWidth: 105 }}>Location</th>
-              <th style={{ minWidth: 105 }}>Rate Fixed (₹)</th>
-              <th style={{ minWidth: 155 }}>Date / Time Fixed</th>
-              <th style={{ minWidth: 130 }}>Status</th>
+              <th style={{ minWidth: 260 }}>Profile / Handle</th>
+              <th style={{ minWidth: 220 }}>Deliverables</th>
+              <th style={{ minWidth: 260 }}>Remarks</th>
+              <th style={{ minWidth: 110 }}>Location</th>
+              <th style={{ minWidth: 115 }}>Rate Fixed (₹)</th>
+              <th style={{ minWidth: 160 }}>Date / Time Fixed</th>
+              <th style={{ minWidth: 135 }}>Status</th>
             </tr>
           </thead>
           <tbody>
@@ -1534,9 +1534,10 @@ function CampaignExcelSpreadsheet({ campaign, shown, removeInfluencer, changeSta
                   </td>
                   <td>
                     <div style={{ display: "flex", alignItems: "center", height: "100%", position: "relative" }}>
-                      <input
-                        className="excel-grid-input"
+                      <textarea
+                        className="excel-grid-input excel-grid-textarea"
                         placeholder="@handle or URL"
+                        rows={2}
                         style={{ paddingRight: profileLink ? 26 : 10 }}
                         value={inf.profile_url || ""}
                         onChange={(e) => handleCellChange(inf.id, "profile_url", e.target.value)}
@@ -1557,18 +1558,20 @@ function CampaignExcelSpreadsheet({ campaign, shown, removeInfluencer, changeSta
                     </div>
                   </td>
                   <td>
-                    <input
-                      className="excel-grid-input"
+                    <textarea
+                      className="excel-grid-input excel-grid-textarea"
                       placeholder="e.g. 1 Reel + 2 Stories"
+                      rows={2}
                       value={inf.deliverables || ""}
                       onChange={(e) => handleCellChange(inf.id, "deliverables", e.target.value)}
                       onBlur={(e) => handleAutoSave(inf.id, "deliverables", e.target.value)}
                     />
                   </td>
                   <td>
-                    <input
-                      className="excel-grid-input"
+                    <textarea
+                      className="excel-grid-input excel-grid-textarea"
                       placeholder="Notes / follower count"
+                      rows={2}
                       value={inf.remark || ""}
                       onChange={(e) => handleCellChange(inf.id, "remark", e.target.value)}
                       onBlur={(e) => handleAutoSave(inf.id, "remark", e.target.value)}
@@ -1719,13 +1722,14 @@ function CampaignExcelSpreadsheet({ campaign, shown, removeInfluencer, changeSta
               </td>
               <td>
                 <div style={{ display: "flex", alignItems: "center", height: "100%", position: "relative" }}>
-                  <input
-                    className="excel-grid-input"
+                  <textarea
+                    className="excel-grid-input excel-grid-textarea"
                     placeholder="@handle or URL"
+                    rows={2}
                     style={{ paddingRight: getProfileLink(newProfile) ? 26 : 10 }}
                     value={newProfile}
                     onChange={(e) => setNewProfile(e.target.value)}
-                    onKeyDown={(e) => e.key === "Enter" && submitNewRow()}
+                    onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && (e.preventDefault(), submitNewRow())}
                   />
                   {getProfileLink(newProfile) && (
                     <a
@@ -1742,21 +1746,23 @@ function CampaignExcelSpreadsheet({ campaign, shown, removeInfluencer, changeSta
                 </div>
               </td>
               <td>
-                <input
-                  className="excel-grid-input"
+                <textarea
+                  className="excel-grid-input excel-grid-textarea"
                   placeholder="e.g. 1 Reel + 2 Stories"
+                  rows={2}
                   value={newDeliverables}
                   onChange={(e) => setNewDeliverables(e.target.value)}
-                  onKeyDown={(e) => e.key === "Enter" && submitNewRow()}
+                  onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && (e.preventDefault(), submitNewRow())}
                 />
               </td>
               <td>
-                <input
-                  className="excel-grid-input"
+                <textarea
+                  className="excel-grid-input excel-grid-textarea"
                   placeholder="Notes / follower count"
+                  rows={2}
                   value={newRemark}
                   onChange={(e) => setNewRemark(e.target.value)}
-                  onKeyDown={(e) => e.key === "Enter" && submitNewRow()}
+                  onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && (e.preventDefault(), submitNewRow())}
                 />
               </td>
               <td>
@@ -1942,17 +1948,7 @@ export function CampaignDetail({ id, onBack, isPage }) {
               <option value="cancelled">• CANCELLED</option>
             </select>
           </div>
-          <h1 style={{ fontSize: 30, margin: "0 0 12px", letterSpacing: "-1px" }}>{campaign.title}</h1>
-          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <button onClick={() => openDrawer(<CampaignForm campaign={campaign} />)}>Edit campaign</button>
-            <button
-              className="roster-delete"
-              style={{ color: "#e68585", borderColor: "#4a2222" }}
-              onClick={() => deleteCampaign(campaign, { toast, refresh, closeDrawer: onBack || closeDrawer })}
-            >
-              Delete
-            </button>
-          </div>
+          <h1 style={{ fontSize: 30, margin: 0, letterSpacing: "-1px" }}>{campaign.title}</h1>
         </div>
 
         {/* Right side KPI Stats */}
