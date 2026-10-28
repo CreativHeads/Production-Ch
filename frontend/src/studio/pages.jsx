@@ -52,12 +52,13 @@ export function Card({ t, onFav }) {
     ? [t.influencer_niche, t.primary_platform, ...t.languages].filter(Boolean).slice(0, 3)
     : [...t.tags.map((x) => x.name), ...t.languages].slice(0, 3);
   const open = () => openDrawer(<Profile id={t.id} />);
+  const label = isInf ? "✦ INFLUENCER" : (t.categories[0]?.name || "").toUpperCase();
   return (
     <article className="talent">
       <div className={"portrait" + (t.photo ? "" : " noimg")} onClick={open}>
         {t.photo ? <img src={t.photo.card} alt={t.full_name} loading="lazy" /> : initials(t.full_name)}
         <button className={"heart" + (t.is_favorite ? " saved" : "")} aria-label={`Favorite ${t.full_name}`} onClick={fav}>{t.is_favorite ? "♥" : "♡"}</button>
-        <span className="image-label">{isInf ? "✦ INFLUENCER" : (t.categories[0]?.name || "").toUpperCase()}</span>
+        {label && <span className={"image-label" + (isInf ? " is-influencer" : "")}>{label}</span>}
       </div>
       <div className="talentinfo">
         <div className="talentname" onClick={open}>
