@@ -1,5 +1,5 @@
 // Drawers (side panels) of the studio UI, wired to the casting API.
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { api } from "../lib/api";
 import { Field, FormError, ModalHead, Photo, money, shortDate, useData, useStudio } from "./shared";
 
