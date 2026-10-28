@@ -1240,19 +1240,28 @@ function CampaignExcelSpreadsheet({ campaign, shown, removeInfluencer, changeSta
               <th style={{ width: 36, textAlign: "center" }}>#</th>
               <th style={{ width: 44, textAlign: "center" }}>Photo</th>
               <th style={{ minWidth: 170 }}>Influencer Name *</th>
-              <th style={{ minWidth: 160 }}>Platform & Handle</th>
+              <th style={{ minWidth: 140 }}>Profile / Handle</th>
+              <th style={{ minWidth: 160 }}>Remarks / Deliverables</th>
               <th style={{ minWidth: 110 }}>Location</th>
               <th style={{ minWidth: 105 }}>Rate Fixed (₹)</th>
               <th style={{ minWidth: 115 }}>Date / Time Fixed</th>
-              <th style={{ minWidth: 125 }}>Status</th>
-              <th style={{ minWidth: 150 }}>Remarks / Deliverables</th>
-              <th style={{ width: 100, textAlign: "center" }}>Action</th>
+              <th style={{ minWidth: 140 }}>Status</th>
             </tr>
           </thead>
           <tbody>
             {/* Inline Excel Quick-Add Row */}
             <tr className="excel-entry-row">
-              <td style={{ textAlign: "center", color: "var(--accent)", fontWeight: 700, fontSize: 13 }}>＋</td>
+              <td style={{ textAlign: "center", padding: "4px 2px" }}>
+                <button
+                  type="button"
+                  className="excel-quickadd-icon-btn"
+                  disabled={adding}
+                  onClick={handleAddRow}
+                  title="Click to add row to sheet (or press Enter in any field)"
+                >
+                  {adding ? "…" : "＋"}
+                </button>
+              </td>
               <td style={{ textAlign: "center" }}>
                 <label className="excel-photo-pick" title="Click to upload photo">
                   <input
@@ -1301,25 +1310,20 @@ function CampaignExcelSpreadsheet({ campaign, shown, removeInfluencer, changeSta
                 )}
               </td>
               <td>
-                <div style={{ display: "flex", gap: 4 }}>
-                  <select
-                    value={platform}
-                    onChange={(e) => setPlatform(e.target.value)}
-                    style={{ width: 85, flexShrink: 0 }}
-                  >
-                    <option value="Instagram">Instagram</option>
-                    <option value="YouTube">YouTube</option>
-                    <option value="Snapchat">Snapchat</option>
-                    <option value="TikTok">TikTok</option>
-                    <option value="Other">Other</option>
-                  </select>
-                  <input
-                    placeholder="@handle or URL"
-                    value={profileUrl}
-                    onChange={(e) => setProfileUrl(e.target.value)}
-                    onKeyDown={(e) => e.key === "Enter" && handleAddRow(e)}
-                  />
-                </div>
+                <input
+                  placeholder="@handle or URL"
+                  value={profileUrl}
+                  onChange={(e) => setProfileUrl(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && handleAddRow(e)}
+                />
+              </td>
+              <td>
+                <input
+                  placeholder="e.g. 1 Reel + 2 Stories"
+                  value={remark}
+                  onChange={(e) => setRemark(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && handleAddRow(e)}
+                />
               </td>
               <td>
                 <input
@@ -1347,32 +1351,24 @@ function CampaignExcelSpreadsheet({ campaign, shown, removeInfluencer, changeSta
                 />
               </td>
               <td>
-                <select value={status} onChange={(e) => setStatus(e.target.value)}>
-                  <option value="finalised">✓ Finalised</option>
-                  <option value="shortlisted">Shortlisted</option>
-                  <option value="pitched">Pitched</option>
-                  <option value="completed">Completed</option>
-                  <option value="declined">Declined</option>
-                </select>
-              </td>
-              <td>
-                <input
-                  placeholder="e.g. 1 Reel + 2 Stories"
-                  value={remark}
-                  onChange={(e) => setRemark(e.target.value)}
-                  onKeyDown={(e) => e.key === "Enter" && handleAddRow(e)}
-                />
-              </td>
-              <td style={{ textAlign: "center" }}>
-                <button
-                  type="button"
-                  className="excel-add-btn"
-                  disabled={adding}
-                  onClick={handleAddRow}
-                  title="Add influencer row to sheet"
-                >
-                  {adding ? "Adding…" : "＋ Add Row"}
-                </button>
+                <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+                  <select value={status} onChange={(e) => setStatus(e.target.value)} style={{ flex: 1 }}>
+                    <option value="finalised">✓ Finalised</option>
+                    <option value="shortlisted">Shortlisted</option>
+                    <option value="pitched">Pitched</option>
+                    <option value="completed">Completed</option>
+                    <option value="declined">Declined</option>
+                  </select>
+                  <button
+                    type="button"
+                    className="excel-row-save-btn"
+                    disabled={adding}
+                    onClick={handleAddRow}
+                    title="Add influencer to sheet"
+                  >
+                    {adding ? "…" : "＋"}
+                  </button>
+                </div>
               </td>
             </tr>
 
@@ -1404,14 +1400,19 @@ function CampaignExcelSpreadsheet({ campaign, shown, removeInfluencer, changeSta
                       {inf.profile_url ? (
                         inf.profile_url.startsWith("http") ? (
                           <a href={inf.profile_url} target="_blank" rel="noreferrer" style={{ color: "#8cb4ff", textDecoration: "underline" }}>
-                            {inf.platform}: link ↗
+                            {inf.profile_url.replace(/^https?:\/\/(www\.)?/, '')} ↗
                           </a>
                         ) : (
-                          <span>{inf.platform}: <b>{inf.profile_url}</b></span>
+                          <span><b>{inf.profile_url}</b></span>
                         )
                       ) : (
                         <span style={{ color: "#666" }}>—</span>
                       )}
+                    </span>
+                  </td>
+                  <td>
+                    <span style={{ fontSize: 11, color: "#bbb", fontStyle: inf.remark ? "italic" : "normal" }}>
+                      {inf.remark || "—"}
                     </span>
                   </td>
                   <td>
@@ -1426,45 +1427,42 @@ function CampaignExcelSpreadsheet({ campaign, shown, removeInfluencer, changeSta
                     <span style={{ fontSize: 11, color: "#e0be87" }}>{inf.date_available ? `🗓 ${inf.date_available}` : "—"}</span>
                   </td>
                   <td>
-                    <select
-                      className="roster-status-select"
-                      value={inf.status}
-                      style={{
-                        background: isDone ? "#162814" : "#1a1a1a",
-                        color: isDone ? "#95f589" : "#bbb",
-                        borderColor: isDone ? "#2d4a25" : "#333",
-                        fontWeight: isDone ? 600 : 400,
-                      }}
-                      onChange={(e) => changeStatus(inf, e.target.value)}
-                    >
-                      <option value="finalised">✓ Finalised</option>
-                      <option value="shortlisted">Shortlisted</option>
-                      <option value="pitched">Pitched</option>
-                      <option value="completed">Completed</option>
-                      <option value="declined">Declined</option>
-                    </select>
-                  </td>
-                  <td>
-                    <span style={{ fontSize: 11, color: "#bbb", fontStyle: inf.remark ? "italic" : "normal" }}>
-                      {inf.remark || "—"}
-                    </span>
-                  </td>
-                  <td style={{ textAlign: "center", whiteSpace: "nowrap" }}>
-                    <button
-                      style={{ fontSize: 11, padding: "4px 8px", marginRight: 4 }}
-                      onClick={() => openDrawer(<CampaignInfluencerForm campaignId={campaign.id} initialData={inf} />)}
-                      title="Edit influencer full form"
-                    >
-                      ✎
-                    </button>
-                    <button
-                      className="roster-delete"
-                      style={{ fontSize: 11, padding: "4px 8px" }}
-                      onClick={() => removeInfluencer(inf)}
-                      title="Remove from campaign"
-                    >
-                      ✕
-                    </button>
+                    <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
+                      <select
+                        className="roster-status-select"
+                        value={inf.status}
+                        style={{
+                          flex: 1,
+                          background: isDone ? "#162814" : "#1a1a1a",
+                          color: isDone ? "#95f589" : "#bbb",
+                          borderColor: isDone ? "#2d4a25" : "#333",
+                          fontWeight: isDone ? 600 : 400,
+                        }}
+                        onChange={(e) => changeStatus(inf, e.target.value)}
+                      >
+                        <option value="finalised">✓ Finalised</option>
+                        <option value="shortlisted">Shortlisted</option>
+                        <option value="pitched">Pitched</option>
+                        <option value="completed">Completed</option>
+                        <option value="declined">Declined</option>
+                      </select>
+                      <button
+                        type="button"
+                        className="excel-row-action-icon"
+                        onClick={() => openDrawer(<CampaignInfluencerForm campaignId={campaign.id} initialData={inf} />)}
+                        title="Edit details"
+                      >
+                        ✎
+                      </button>
+                      <button
+                        type="button"
+                        className="excel-row-action-icon roster-delete"
+                        onClick={() => removeInfluencer(inf)}
+                        title="Remove from campaign"
+                      >
+                        ✕
+                      </button>
+                    </div>
                   </td>
                 </tr>
               );
@@ -1472,8 +1470,8 @@ function CampaignExcelSpreadsheet({ campaign, shown, removeInfluencer, changeSta
 
             {shown.length === 0 && (
               <tr>
-                <td colSpan={10} style={{ textAlign: "center", padding: "30px 15px", color: "#888" }}>
-                  No influencers in this list yet. Enter details in the top row above and click <b>＋ Add Row</b> to build your Excel sheet!
+                <td colSpan={9} style={{ textAlign: "center", padding: "30px 15px", color: "#888" }}>
+                  No influencers in this list yet. Enter details in the row above and press <b>Enter</b> or click <b>＋</b> to add!
                 </td>
               </tr>
             )}
@@ -1483,9 +1481,9 @@ function CampaignExcelSpreadsheet({ campaign, shown, removeInfluencer, changeSta
               <tr className="excel-footer-row">
                 <td colSpan={2} style={{ textAlign: "center" }}>TOTAL</td>
                 <td>{shown.length} Influencer{shown.length === 1 ? "" : "s"}</td>
-                <td colSpan={2}>{finalisedCount} Finalised for Client</td>
-                <td style={{ color: "#7bf59e", fontSize: 14 }}>₹{totalRate.toLocaleString("en-IN")}</td>
-                <td colSpan={4} style={{ textAlign: "right", color: "#777", fontSize: 11 }}>
+                <td colSpan={3}>{finalisedCount} Finalised for Client</td>
+                <td style={{ color: "#7bf59e", fontSize: 14, fontWeight: 700 }}>₹{totalRate.toLocaleString("en-IN")}</td>
+                <td colSpan={2} style={{ textAlign: "right", color: "#777", fontSize: 11 }}>
                   💡 Use "Export client list (Excel)" above to download formatted Excel
                 </td>
               </tr>

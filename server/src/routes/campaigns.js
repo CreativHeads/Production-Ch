@@ -380,13 +380,12 @@ module.exports = function (r) {
     const headerRow = ws.addRow([
       "#",
       "Influencer Name",
-      "Platform",
       "Social Profile / Handle",
-      "Location",
-      "Date / Time Fixed",
-      "Final Agreed Rate (₹)",
-      "Status",
       "Remarks / Deliverables",
+      "Location",
+      "Rate Fixed (₹)",
+      "Date / Time Fixed",
+      "Status",
     ]);
     headerRow.height = 26;
     headerRow.eachCell((cell) => {
@@ -408,18 +407,17 @@ module.exports = function (r) {
       const row = ws.addRow([
         idx + 1,
         inf.name,
-        inf.platform || "Instagram",
         inf.profile_url || "-",
-        inf.location || "-",
-        inf.date_available || "TBD",
-        rate > 0 ? rate : "-",
-        inf.status ? inf.status.toUpperCase() : "SHORTLISTED",
         inf.remark || "-",
+        inf.location || "-",
+        rate > 0 ? rate : "-",
+        inf.date_available || "TBD",
+        inf.status ? inf.status.toUpperCase() : "SHORTLISTED",
       ]);
       row.height = 22;
       row.eachCell((cell, col) => {
         cell.font = { name: "Arial", size: 10 };
-        cell.alignment = { vertical: "middle", horizontal: col === 1 || col === 3 || col === 8 ? "center" : col === 7 ? "right" : "left" };
+        cell.alignment = { vertical: "middle", horizontal: col === 1 || col === 8 ? "center" : col === 6 ? "right" : "left" };
         cell.border = { bottom: { style: "thin", color: { argb: "FFE0E0E0" } } };
       });
     });
@@ -431,27 +429,25 @@ module.exports = function (r) {
       "",
       "",
       "",
-      "",
       "TOTAL FINALISED BUDGET:",
       totalRate,
       "",
       "",
     ]);
     totalRow.height = 26;
-    totalRow.getCell(6).font = { name: "Arial", size: 11, bold: true };
-    totalRow.getCell(7).font = { name: "Arial", size: 12, bold: true, color: { argb: "FF0A5C1E" } };
-    totalRow.getCell(7).alignment = { horizontal: "right", vertical: "middle" };
+    totalRow.getCell(5).font = { name: "Arial", size: 11, bold: true };
+    totalRow.getCell(6).font = { name: "Arial", size: 12, bold: true, color: { argb: "FF0A5C1E" } };
+    totalRow.getCell(6).alignment = { horizontal: "right", vertical: "middle" };
 
     ws.columns = [
       { width: 6 },
-      { width: 24 },
-      { width: 14 },
       { width: 26 },
-      { width: 16 },
-      { width: 22 },
-      { width: 22 },
-      { width: 16 },
+      { width: 26 },
       { width: 32 },
+      { width: 18 },
+      { width: 20 },
+      { width: 20 },
+      { width: 18 },
     ];
 
     const safeFilename = `${(campaign.title || "campaign").replace(/[^a-zA-Z0-9_-]/g, "_")}_Finalised_List.xlsx`;
