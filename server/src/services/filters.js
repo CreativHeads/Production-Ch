@@ -287,7 +287,7 @@ function filterTalent(p, user, s) {
 
 function applySort(q, sort, type) {
   if (!type) {
-    q.orderByRaw("CASE WHEN talent.type = 'cast' THEN 0 ELSE 1 END ASC");
+    q.orderByRaw("CASE WHEN talent.talent_type = 'cast' THEN 0 ELSE 1 END ASC");
   }
   for (const [col, dir] of SORTS[sort] || SORTS.name) {
     if (col === "raw") q.orderByRaw(dir);
