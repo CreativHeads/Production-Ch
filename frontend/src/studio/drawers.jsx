@@ -1506,16 +1506,16 @@ function CampaignExcelSpreadsheet({ campaign, shown, removeInfluencer, changeSta
           <thead>
             <tr>
               <th style={{ width: 40, textAlign: "center" }}>#</th>
-              <th style={{ width: 60, textAlign: "center" }}>Photo</th>
-              <th style={{ minWidth: 160 }}>Influencer Name *</th>
-              <th style={{ minWidth: 125 }}>Phone</th>
-              <th style={{ minWidth: 260 }}>Profile / Handle</th>
-              <th style={{ minWidth: 220 }}>Deliverables</th>
-              <th style={{ minWidth: 260 }}>Remarks</th>
-              <th style={{ minWidth: 110 }}>Location</th>
-              <th style={{ minWidth: 115 }}>Rate Fixed (₹)</th>
-              <th style={{ minWidth: 160 }}>Date / Time Fixed</th>
-              <th style={{ minWidth: 135 }}>Status</th>
+              <th style={{ width: 54, textAlign: "center" }}>Photo</th>
+              <th style={{ minWidth: 140 }}>Influencer Name *</th>
+              <th style={{ minWidth: 115 }}>Phone</th>
+              <th style={{ minWidth: 175 }}>Profile / Handle</th>
+              <th style={{ minWidth: 160 }}>Deliverables</th>
+              <th style={{ minWidth: 175 }}>Remarks</th>
+              <th style={{ minWidth: 95 }}>Location</th>
+              <th style={{ minWidth: 95 }}>Rate Fixed (₹)</th>
+              <th style={{ minWidth: 135 }}>Date / Time Fixed</th>
+              <th style={{ minWidth: 120 }}>Status</th>
             </tr>
           </thead>
           <tbody>
@@ -1591,7 +1591,7 @@ function CampaignExcelSpreadsheet({ campaign, shown, removeInfluencer, changeSta
                       <textarea
                         className="excel-grid-input excel-grid-textarea"
                         placeholder="@handle or URL"
-                        rows={2}
+                        rows={3}
                         style={{ paddingRight: profileLink ? 26 : 10 }}
                         value={inf.profile_url || ""}
                         onChange={(e) => handleCellChange(inf.id, "profile_url", e.target.value)}
@@ -1615,7 +1615,7 @@ function CampaignExcelSpreadsheet({ campaign, shown, removeInfluencer, changeSta
                     <textarea
                       className="excel-grid-input excel-grid-textarea"
                       placeholder="e.g. 1 Reel + 2 Stories"
-                      rows={2}
+                      rows={3}
                       value={inf.deliverables || ""}
                       onChange={(e) => handleCellChange(inf.id, "deliverables", e.target.value)}
                       onBlur={(e) => handleAutoSave(inf.id, "deliverables", e.target.value)}
@@ -1625,7 +1625,7 @@ function CampaignExcelSpreadsheet({ campaign, shown, removeInfluencer, changeSta
                     <textarea
                       className="excel-grid-input excel-grid-textarea"
                       placeholder="Notes / follower count"
-                      rows={2}
+                      rows={3}
                       value={inf.remark || ""}
                       onChange={(e) => handleCellChange(inf.id, "remark", e.target.value)}
                       onBlur={(e) => handleAutoSave(inf.id, "remark", e.target.value)}
@@ -1814,7 +1814,7 @@ function CampaignExcelSpreadsheet({ campaign, shown, removeInfluencer, changeSta
                   <textarea
                     className="excel-grid-input excel-grid-textarea"
                     placeholder="@handle or URL"
-                    rows={2}
+                    rows={3}
                     style={{ paddingRight: getProfileLink(newProfile) ? 26 : 10 }}
                     value={newProfile}
                     onChange={(e) => setNewProfile(e.target.value)}
@@ -1838,7 +1838,7 @@ function CampaignExcelSpreadsheet({ campaign, shown, removeInfluencer, changeSta
                 <textarea
                   className="excel-grid-input excel-grid-textarea"
                   placeholder="e.g. 1 Reel + 2 Stories"
-                  rows={2}
+                  rows={3}
                   value={newDeliverables}
                   onChange={(e) => setNewDeliverables(e.target.value)}
                   onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && (e.preventDefault(), submitNewRow())}
@@ -1848,7 +1848,7 @@ function CampaignExcelSpreadsheet({ campaign, shown, removeInfluencer, changeSta
                 <textarea
                   className="excel-grid-input excel-grid-textarea"
                   placeholder="Notes / follower count"
-                  rows={2}
+                  rows={3}
                   value={newRemark}
                   onChange={(e) => setNewRemark(e.target.value)}
                   onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && (e.preventDefault(), submitNewRow())}

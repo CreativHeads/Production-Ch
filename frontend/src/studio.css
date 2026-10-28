@@ -435,8 +435,8 @@ aside{overflow-y:auto}
   border-right: 1px solid #1e1e1e;
   vertical-align: middle;
   color: #ddd;
-  height: 48px;
-  min-height: 48px;
+  height: 62px;
+  min-height: 62px;
   position: relative;
 }
 .campaign-excel-table td:last-child {
@@ -481,11 +481,11 @@ aside{overflow-y:auto}
 }
 .excel-grid-textarea {
   resize: none;
-  line-height: 1.35;
+  line-height: 1.38;
   height: 100%;
-  min-height: 42px;
+  min-height: 56px;
   padding: 6px 8px;
-  font-size: 12px;
+  font-size: 11.5px;
   white-space: pre-wrap;
   word-break: break-word;
   overflow-y: auto;
@@ -514,8 +514,8 @@ aside{overflow-y:auto}
   box-shadow: inset 0 0 0 1px var(--accent);
 }
 .excel-grid-photo-cell {
-  width: 34px;
-  height: 42px;
+  width: 36px;
+  height: 48px;
   margin: 0 auto;
   border-radius: 4px;
   overflow: hidden;
