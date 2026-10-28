@@ -1179,10 +1179,8 @@ header.client-share-header,
   padding: 0 !important;
   background: #090909;
   border-bottom: 1px solid #1c1c1c;
-  position: sticky;
-  top: 0;
-  z-index: 20;
-  backdrop-filter: blur(14px);
+  position: relative;
+  z-index: 10;
 }
 .client-share-header-inner {
   max-width: 1280px;
