@@ -1171,28 +1171,40 @@ body.sidebar-collapsed .account b {
 }
 
 /* Header */
+header.client-share-header,
 .client-share-header {
+  height: auto !important;
+  min-height: auto !important;
+  display: block !important;
+  padding: 0 !important;
   background: #090909;
   border-bottom: 1px solid #1c1c1c;
   position: sticky;
   top: 0;
   z-index: 20;
-  backdrop-filter: blur(12px);
+  backdrop-filter: blur(14px);
 }
 .client-share-header-inner {
   max-width: 1280px;
   margin: 0 auto;
-  padding: 18px 20px 16px;
+  padding: 16px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 }
 .client-share-brand-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 12px;
+  margin: 0;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #161616;
 }
 .client-share-logo {
   height: 28px;
+  width: auto;
   object-fit: contain;
+  display: block;
 }
 .client-share-badge {
   font-size: 10px;
@@ -1202,15 +1214,17 @@ body.sidebar-collapsed .account b {
   background: #141414;
   color: #c5c5c5;
   border: 1px solid #282828;
-  padding: 3px 8px;
+  padding: 4px 10px;
   border-radius: 4px;
+  line-height: 1.4;
 }
 .client-share-title-row {
   display: flex;
-  align-items: flex-end;
+  align-items: center;
   justify-content: space-between;
-  gap: 20px;
+  gap: 16px;
   flex-wrap: wrap;
+  margin: 0;
 }
 .client-share-sub {
   color: #777;
@@ -1218,19 +1232,21 @@ body.sidebar-collapsed .account b {
   font-weight: 700;
   letter-spacing: 1px;
   display: block;
-  margin-bottom: 4px;
+  margin-bottom: 3px;
 }
 .client-share-title {
   margin: 0;
-  font-size: 26px;
+  font-size: 24px;
   font-weight: 800;
-  letter-spacing: -0.6px;
+  letter-spacing: -0.5px;
   color: #ffffff;
+  line-height: 1.2;
 }
 .client-share-kpis {
   display: flex;
   gap: 8px;
   flex-wrap: wrap;
+  align-items: center;
 }
 .client-kpi-pill {
   background: #0f0f0f;
