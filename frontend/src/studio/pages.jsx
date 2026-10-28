@@ -323,16 +323,22 @@ export function CampaignsPage() {
           </article>
         ))}
 
-        {campaigns && list.length === 0 && (
+        {allCampaigns && shown.length === 0 && (
           <div className="empty">
-            {tab === "completed" ? "No completed campaigns." : "No active campaigns found. Create one to begin."}
+            {tab === "planning"
+              ? "No planning / draft campaigns."
+              : tab === "in_progress"
+              ? "No campaigns in progress."
+              : tab === "completed"
+              ? "No completed campaigns."
+              : "No campaigns found. Create one to begin."}
             <br />
             <button className="primary" style={{ marginTop: 14 }} onClick={() => openDrawer(<CampaignForm />)}>
-              ＋ Create first campaign
+              ＋ Create campaign
             </button>
           </div>
         )}
-        {!campaigns && <div className="empty">Loading campaigns…</div>}
+        {!allCampaigns && <div className="empty">Loading campaigns…</div>}
       </div>
     </>
   );
