@@ -17,11 +17,26 @@ const NAV = [
   ["settings", "⚙", "Settings", SettingsPage],
 ];
 
-function Brand() {
+function Brand({ collapsed, onToggle }) {
   return (
-    <a className="brand" href="#talent" title="TakeBoard by CreativHeads">
-      <img src="/Takeboard White_Logo.png" alt="TakeBoard by CreativHeads" className="brand-logo" />
-    </a>
+    <div className="brand-header">
+      <a className="brand" href="#talent" title="TakeBoard by CreativHeads">
+        <img
+          src={collapsed ? "/Takeboard Favicon.png" : "/Takeboard White_Logo.png"}
+          alt="TakeBoard"
+          className={collapsed ? "brand-logo-icon" : "brand-logo"}
+        />
+      </a>
+      <button
+        type="button"
+        className="sidebar-toggle-btn"
+        onClick={onToggle}
+        title={collapsed ? "Expand sidebar" : "Collapse to icons only"}
+        aria-label="Toggle sidebar"
+      >
+        {collapsed ? "»" : "«"}
+      </button>
+    </div>
   );
 }
 
@@ -35,16 +50,19 @@ function Shell() {
   return (
     <>
       <aside>
-        <Brand />
+        <Brand
+          collapsed={s.sidebarCollapsed}
+          onToggle={() => s.setSidebarCollapsed(!s.sidebarCollapsed)}
+        />
         <div className="workspace">
           {studioName[0]} <span>{studioName}<small>Internal workspace</small></span><b>⌄</b>
         </div>
         <div className="navlabel">WORKSPACE</div>
         <nav id="nav">
           {NAV.map(([id, icon, name]) => (
-            <button key={id} className={current[0] === id ? "active" : ""} onClick={() => s.go(id)}>
+            <button key={id} className={current[0] === id ? "active" : ""} onClick={() => s.go(id)} title={name}>
               <span className="ico">{icon}</span>
-              {name}
+              <span className="nav-text">{name}</span>
               {id === "talent" && talentCount && talentCount.count > 0 && <em>{talentCount.count}</em>}
               {id === "campaigns" && campaigns && campaigns.length > 0 && <em>{campaigns.length}</em>}
             </button>

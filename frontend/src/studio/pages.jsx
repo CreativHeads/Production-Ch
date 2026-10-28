@@ -202,15 +202,25 @@ export function TalentPage() {
 
 // ---------------------------------------------------------------- campaigns page
 export function CampaignsPage() {
-  const { openDrawer } = useStudio();
+  const { openDrawer, setSidebarCollapsed } = useStudio();
   const [selectedId, setSelectedId] = useState(null);
   const [tab, setTab] = useState("all");
   const [query, setQuery] = useState("");
   const [location, setLocation] = useState("");
   const { data: allCampaigns } = useData(() => api.get("campaigns/", { scope: "all", q: query, location }), [query, location]);
 
+  const openCampaign = (id) => {
+    setSelectedId(id);
+    setSidebarCollapsed(true);
+  };
+
+  const closeCampaign = () => {
+    setSelectedId(null);
+    setSidebarCollapsed(false);
+  };
+
   if (selectedId) {
-    return <CampaignDetail id={selectedId} onBack={() => setSelectedId(null)} isPage />;
+    return <CampaignDetail id={selectedId} onBack={closeCampaign} isPage />;
   }
 
   const list = allCampaigns || [];
@@ -271,8 +281,8 @@ export function CampaignsPage() {
               className="project-open"
               role="button"
               tabIndex={0}
-              onClick={() => setSelectedId(c.id)}
-              onKeyDown={(e) => e.key === "Enter" && setSelectedId(c.id)}
+              onClick={() => openCampaign(c.id)}
+              onKeyDown={(e) => e.key === "Enter" && openCampaign(c.id)}
             >
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 18 }}>
                 <div className="projecticon" style={{ marginBottom: 0, background: "#1c2419", color: "#b9ff66" }}>✧</div>
@@ -322,7 +332,7 @@ export function CampaignsPage() {
             </div>
 
             <div className="actions" style={{ marginTop: 18 }}>
-              <button onClick={() => setSelectedId(c.id)}>Open roster →</button>
+              <button onClick={() => openCampaign(c.id)}>Open roster →</button>
               <button onClick={() => openDrawer(<CampaignForm campaign={c} />)}>Edit</button>
             </div>
           </article>

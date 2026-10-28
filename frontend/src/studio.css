@@ -442,5 +442,116 @@ aside{overflow-y:auto}
   width: 100%;
 }
 
+/* Sidebar Collapse Transition */
+aside {
+  transition: width 0.22s cubic-bezier(0.16, 1, 0.3, 1), padding 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.shell {
+  transition: margin-left 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Toggle button in sidebar brand */
+.brand-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+}
+.brand-header a.brand {
+  display: flex;
+  align-items: center;
+}
+.sidebar-toggle-btn {
+  width: 26px;
+  height: 26px;
+  display: grid;
+  place-items: center;
+  border-radius: 5px;
+  border: 1px solid #2a2a2a;
+  background: #141414;
+  color: #888;
+  padding: 0;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all .15s;
+}
+.sidebar-toggle-btn:hover {
+  background: #242424;
+  color: #fff;
+  border-color: #555;
+}
+
+/* Collapsed Sidebar (Icon-only mode) */
+body.sidebar-collapsed aside {
+  width: 68px !important;
+  padding: 24px 8px !important;
+}
+body.sidebar-collapsed .shell {
+  margin-left: 68px !important;
+}
+body.sidebar-collapsed .brand-header {
+  flex-direction: column;
+  gap: 10px;
+  align-items: center;
+}
+body.sidebar-collapsed .brand-logo {
+  display: none !important;
+}
+body.sidebar-collapsed .brand-logo-icon {
+  width: 30px !important;
+  height: 30px !important;
+  object-fit: contain;
+  display: block !important;
+}
+body.sidebar-collapsed .workspace {
+  padding: 10px 0 !important;
+  margin: 16px 0 !important;
+  justify-content: center !important;
+  border-color: #222 !important;
+  text-align: center;
+}
+body.sidebar-collapsed .workspace span,
+body.sidebar-collapsed .workspace b {
+  display: none !important;
+}
+body.sidebar-collapsed .navlabel {
+  display: none !important;
+}
+body.sidebar-collapsed nav button {
+  justify-content: center !important;
+  padding: 12px 0 !important;
+  margin: 6px 0 !important;
+  position: relative;
+  border-radius: 6px;
+}
+body.sidebar-collapsed nav button .nav-text {
+  display: none !important;
+}
+body.sidebar-collapsed nav button .ico {
+  font-size: 18px !important;
+  width: auto !important;
+}
+body.sidebar-collapsed nav button em {
+  position: absolute !important;
+  top: 4px !important;
+  right: 4px !important;
+  font-size: 8px !important;
+  padding: 1px 4px !important;
+  border-radius: 8px !important;
+  margin: 0 !important;
+}
+body.sidebar-collapsed .sidebottom .note {
+  display: none !important;
+}
+body.sidebar-collapsed .account {
+  justify-content: center !important;
+  padding: 14px 0 0 !important;
+}
+body.sidebar-collapsed .account span:not(.avatar),
+body.sidebar-collapsed .account b {
+  display: none !important;
+}
+
+
 
 

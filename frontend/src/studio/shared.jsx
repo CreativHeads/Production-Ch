@@ -64,12 +64,15 @@ export function useStudioState(user, setUser) {
     const t = setTimeout(() => setToast(""), 3200);
     return () => clearTimeout(t);
   }, [toastMsg]);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+
   useEffect(() => {
-    api.get("settings/").then(setSettings).catch(() => {});
-  }, [version]);
+    document.body.classList.toggle("sidebar-collapsed", sidebarCollapsed);
+  }, [sidebarCollapsed]);
 
   return {
     user, setUser, page, go, drawer, version, menu, setMenu, settings, projectId, setProjectId, talentQuery, setTalentQuery,
+    sidebarCollapsed, setSidebarCollapsed,
     openDrawer: (node) => setDrawer(node),
     closeDrawer: () => setDrawer(null),
     toast: (m) => setToast(m),
