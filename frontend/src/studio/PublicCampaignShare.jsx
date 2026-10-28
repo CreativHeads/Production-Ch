@@ -35,21 +35,21 @@ function getStatusBadge(st) {
   switch (norm) {
     case "finalised":
     case "confirmed":
-      return { label: "✓ Finalized", bg: "#152615", color: "#95f589", border: "#284d28" };
+      return { label: "✓ Finalized", bg: "#1c1c1c", color: "#ffffff", border: "#3a3a3a" };
     case "completed":
-      return { label: "Completed", bg: "#102624", color: "#5eead4", border: "#1f4a45" };
+      return { label: "Completed", bg: "#191919", color: "#e0e0e0", border: "#333333" };
     case "shortlisted":
-      return { label: "Shortlisted", bg: "#231a30", color: "#c084fc", border: "#462e68" };
+      return { label: "Shortlisted", bg: "#1c1824", color: "#d8b4fe", border: "#38294e" };
     case "contacted":
     case "pitched":
-      return { label: "Contacted", bg: "#132330", color: "#4fc3f7", border: "#234966" };
+      return { label: "Contacted", bg: "#141c24", color: "#93c5fd", border: "#23384a" };
     case "no_response":
-      return { label: "No Respond", bg: "#222", color: "#8e9297", border: "#3a3a3a" };
+      return { label: "No Respond", bg: "#181818", color: "#888888", border: "#2c2c2c" };
     case "rejected":
     case "declined":
-      return { label: "Rejected", bg: "#2b1414", color: "#ff6b6b", border: "#582424" };
+      return { label: "Rejected", bg: "#241414", color: "#f87171", border: "#4a2323" };
     default:
-      return { label: "Not Contacted", bg: "#282110", color: "#e5b158", border: "#4e3d1c" };
+      return { label: "Not Contacted", bg: "#221c12", color: "#fcd34d", border: "#44341b" };
   }
 }
 
@@ -155,11 +155,11 @@ export default function PublicCampaignShare({ campaignId }) {
               </div>
               <div className="client-kpi-pill highlighted">
                 <span>FINALISED</span>
-                <strong style={{ color: "#95f589" }}>{data.finalised_count}</strong>
+                <strong>{data.finalised_count}</strong>
               </div>
               <div className="client-kpi-pill">
                 <span>TOTAL BUDGET</span>
-                <strong style={{ color: "#6ef0a3" }}>₹{formatRate(data.total_rate)}</strong>
+                <strong>₹{formatRate(data.total_rate)}</strong>
               </div>
             </div>
           </div>
@@ -313,7 +313,7 @@ export default function PublicCampaignShare({ campaignId }) {
                           <span>{inf.date_available}</span>
                         </div>
                       ) : (
-                        <span style={{ color: "#666", fontSize: 12 }}>Dates TBD</span>
+                        <span className="client-date-tbd">Dates TBD</span>
                       )}
                     </div>
                   </div>
@@ -387,7 +387,7 @@ export default function PublicCampaignShare({ campaignId }) {
                         </div>
                       </td>
                       <td>
-                        <strong style={{ color: "#85f385", fontSize: 13 }}>₹{formatRate(inf.rate_fixed)}</strong>
+                        <strong style={{ color: "#ffffff", fontSize: 13 }}>₹{formatRate(inf.rate_fixed)}</strong>
                       </td>
                       <td>
                         {inf.date_available ? (

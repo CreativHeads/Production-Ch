@@ -1139,11 +1139,12 @@ body.sidebar-collapsed .account b {
 
 /* -------------------------------------------------------------
    CLIENT PUBLIC SHOWCASE (MOBILE-FIRST & LAPTOP RESPONSIVE)
+   Pure Deep Black & Luxury Neutral Aesthetic (No Green Tint)
 -------------------------------------------------------------- */
 .client-share-shell {
   min-height: 100vh;
-  background: #0d0e0d;
-  color: #eee;
+  background: #000000;
+  color: #f0f0f0;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
   display: flex;
   flex-direction: column;
@@ -1160,8 +1161,8 @@ body.sidebar-collapsed .account b {
 .client-share-spinner {
   width: 32px;
   height: 32px;
-  border: 3px solid rgba(255, 255, 255, 0.1);
-  border-top-color: var(--accent, #b9ff66);
+  border: 3px solid rgba(255, 255, 255, 0.12);
+  border-top-color: #ffffff;
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
 }
@@ -1171,8 +1172,8 @@ body.sidebar-collapsed .account b {
 
 /* Header */
 .client-share-header {
-  background: #121312;
-  border-bottom: 1px solid #222521;
+  background: #090909;
+  border-bottom: 1px solid #1c1c1c;
   position: sticky;
   top: 0;
   z-index: 20;
@@ -1198,9 +1199,9 @@ body.sidebar-collapsed .account b {
   font-weight: 700;
   letter-spacing: 0.8px;
   text-transform: uppercase;
-  background: #1a2818;
-  color: #95f589;
-  border: 1px solid #2b4927;
+  background: #141414;
+  color: #c5c5c5;
+  border: 1px solid #282828;
   padding: 3px 8px;
   border-radius: 4px;
 }
@@ -1212,7 +1213,7 @@ body.sidebar-collapsed .account b {
   flex-wrap: wrap;
 }
 .client-share-sub {
-  color: #888;
+  color: #777;
   font-size: 11px;
   font-weight: 700;
   letter-spacing: 1px;
@@ -1224,7 +1225,7 @@ body.sidebar-collapsed .account b {
   font-size: 26px;
   font-weight: 800;
   letter-spacing: -0.6px;
-  color: #fff;
+  color: #ffffff;
 }
 .client-share-kpis {
   display: flex;
@@ -1232,10 +1233,10 @@ body.sidebar-collapsed .account b {
   flex-wrap: wrap;
 }
 .client-kpi-pill {
-  background: #181a17;
-  border: 1px solid #262924;
+  background: #0f0f0f;
+  border: 1px solid #222222;
   border-radius: 8px;
-  padding: 6px 12px;
+  padding: 6px 14px;
   display: flex;
   flex-direction: column;
   min-width: 85px;
@@ -1249,7 +1250,7 @@ body.sidebar-collapsed .account b {
 .client-kpi-pill strong {
   font-size: 16px;
   font-weight: 800;
-  color: #fff;
+  color: #ffffff;
 }
 
 /* Body & Controls */
@@ -1272,10 +1273,10 @@ body.sidebar-collapsed .account b {
 .client-share-tabs {
   display: flex;
   gap: 4px;
-  background: #141613;
+  background: #0f0f0f;
   padding: 3px;
   border-radius: 8px;
-  border: 1px solid #222520;
+  border: 1px solid #222222;
 }
 .client-share-tabs button {
   background: transparent;
@@ -1283,14 +1284,15 @@ body.sidebar-collapsed .account b {
   color: #888;
   font-size: 12px;
   font-weight: 600;
-  padding: 6px 12px;
+  padding: 6px 14px;
   border-radius: 6px;
   cursor: pointer;
   transition: all 0.15s ease;
 }
 .client-share-tabs button.active {
-  background: #252b22;
-  color: #b9ff66;
+  background: #ffffff;
+  color: #000000;
+  font-weight: 700;
 }
 .client-share-tools {
   display: flex;
@@ -1316,17 +1318,17 @@ body.sidebar-collapsed .account b {
 }
 .client-search-input {
   width: 100%;
-  background: #141613;
-  border: 1px solid #242922;
+  background: #0f0f0f;
+  border: 1px solid #222222;
   border-radius: 6px;
-  color: #eee;
+  color: #ffffff;
   padding: 7px 28px 7px 30px;
   font-size: 12.5px;
   outline: none;
   box-sizing: border-box;
 }
 .client-search-input:focus {
-  border-color: var(--accent, #b9ff66);
+  border-color: #555555;
 }
 .client-search-clear {
   position: absolute;
@@ -1341,12 +1343,12 @@ body.sidebar-collapsed .account b {
   font-size: 11px;
 }
 .client-view-toggle {
-  display: none; /* hidden on small mobile, visible on desktop */
+  display: none;
   gap: 3px;
-  background: #141613;
+  background: #0f0f0f;
   padding: 3px;
   border-radius: 6px;
-  border: 1px solid #222520;
+  border: 1px solid #222222;
 }
 .client-view-toggle button {
   background: transparent;
@@ -1358,8 +1360,9 @@ body.sidebar-collapsed .account b {
   cursor: pointer;
 }
 .client-view-toggle button.active {
-  background: #222720;
-  color: #fff;
+  background: #242424;
+  color: #ffffff;
+  font-weight: 600;
 }
 @media (min-width: 768px) {
   .client-view-toggle {
@@ -1371,8 +1374,8 @@ body.sidebar-collapsed .account b {
 .client-empty-state {
   text-align: center;
   padding: 60px 20px;
-  background: #131412;
-  border: 1px dashed #282c25;
+  background: #0a0a0a;
+  border: 1px dashed #222222;
   border-radius: 12px;
 }
 .client-empty-state h3 {
@@ -1408,8 +1411,8 @@ body.sidebar-collapsed .account b {
 }
 
 .client-face-card {
-  background: #131512;
-  border: 1px solid #21251e;
+  background: #0c0c0c;
+  border: 1px solid #1e1e1e;
   border-radius: 12px;
   padding: 14px;
   display: flex;
@@ -1417,8 +1420,8 @@ body.sidebar-collapsed .account b {
   transition: transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
 }
 .client-face-card:hover {
-  border-color: #333d2e;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+  border-color: #383838;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.7);
   transform: translateY(-2px);
 }
 .client-face-top {
@@ -1430,8 +1433,8 @@ body.sidebar-collapsed .account b {
 .client-face-avatar {
   width: 52px;
   height: 64px;
-  background: #191c17;
-  border: 1px solid #282e24;
+  background: #141414;
+  border: 1px solid #242424;
   border-radius: 6px;
   overflow: hidden;
   flex-shrink: 0;
@@ -1464,7 +1467,7 @@ body.sidebar-collapsed .account b {
   margin: 2px 0 6px;
   font-size: 15px;
   font-weight: 700;
-  color: #fff;
+  color: #ffffff;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -1480,19 +1483,19 @@ body.sidebar-collapsed .account b {
   align-items: center;
   gap: 5px;
   padding: 3px 8px;
-  background: #1a1e17;
-  border: 1px solid #2d3527;
+  background: #161616;
+  border: 1px solid #2a2a2a;
   border-radius: 4px;
-  color: var(--accent, #b9ff66);
+  color: #ffffff;
   font-size: 11px;
   font-weight: 600;
   text-decoration: none;
   transition: all 0.15s ease;
 }
 .client-profile-link-btn:hover {
-  background: var(--accent, #b9ff66);
-  color: #0b140b;
-  border-color: var(--accent, #b9ff66);
+  background: #ffffff;
+  color: #000000;
+  border-color: #ffffff;
 }
 .client-status-pill {
   font-size: 10.5px;
@@ -1505,16 +1508,17 @@ body.sidebar-collapsed .account b {
 
 /* Deliverables & Remarks Boxes */
 .client-chip-label {
+  display: block;
   font-size: 9px;
   font-weight: 800;
   letter-spacing: 0.7px;
   color: #666;
   text-transform: uppercase;
-  margin-bottom: 2px;
+  margin-bottom: 3px;
 }
 .client-face-deliverables {
-  background: #161814;
-  border: 1px solid #23271f;
+  background: #111111;
+  border: 1px solid #1c1c1c;
   border-radius: 6px;
   padding: 8px 10px;
   margin-bottom: 8px;
@@ -1522,14 +1526,14 @@ body.sidebar-collapsed .account b {
 .client-face-deliverables p {
   margin: 0;
   font-size: 12.5px;
-  color: #ddd;
+  color: #eeeeee;
   line-height: 1.35;
   white-space: pre-wrap;
   word-break: break-word;
 }
 .client-face-remark {
-  background: #151713;
-  border-left: 2px solid #333a2d;
+  background: #111111;
+  border-left: 2px solid #444444;
   padding: 6px 10px;
   margin-bottom: 10px;
   border-radius: 0 4px 4px 0;
@@ -1537,7 +1541,7 @@ body.sidebar-collapsed .account b {
 .client-face-remark p {
   margin: 0;
   font-size: 12px;
-  color: #bbb;
+  color: #bbbbbb;
   font-style: italic;
   line-height: 1.35;
   white-space: pre-wrap;
@@ -1548,7 +1552,7 @@ body.sidebar-collapsed .account b {
 .client-face-footer {
   margin-top: auto;
   padding-top: 10px;
-  border-top: 1px solid #1e221b;
+  border-top: 1px solid #1a1a1a;
   display: flex;
   justify-content: space-between;
   align-items: flex-end;
@@ -1558,9 +1562,13 @@ body.sidebar-collapsed .account b {
   display: block;
   font-size: 15px;
   font-weight: 800;
-  color: #85f385;
+  color: #ffffff;
 }
 .client-face-date {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  justify-content: flex-end;
   text-align: right;
 }
 .client-date-val {
@@ -1569,24 +1577,30 @@ body.sidebar-collapsed .account b {
   gap: 4px;
   font-size: 12px;
   font-weight: 600;
-  color: #ddd;
+  color: #e0e0e0;
+}
+.client-date-tbd {
+  color: #777;
+  font-size: 12px;
+  font-weight: 500;
+  margin-top: 2px;
 }
 .client-day-tag {
   font-size: 9.5px;
   font-weight: 800;
   text-transform: uppercase;
   padding: 1px 5px;
-  background: #1b261b;
-  color: #88f58b;
-  border: 1px solid #2e442c;
+  background: #202020;
+  color: #e0e0e0;
+  border: 1px solid #333333;
   border-radius: 3px;
 }
 
 /* Table View for Laptops */
 .client-table-container {
   overflow-x: auto;
-  background: #131512;
-  border: 1px solid #21251e;
+  background: #0c0c0c;
+  border: 1px solid #1e1e1e;
   border-radius: 10px;
 }
 .client-share-table {
@@ -1596,29 +1610,29 @@ body.sidebar-collapsed .account b {
   text-align: left;
 }
 .client-share-table th {
-  background: #171a15;
+  background: #111111;
   color: #888;
   font-size: 10px;
   font-weight: 700;
   letter-spacing: 0.7px;
   text-transform: uppercase;
   padding: 12px 10px;
-  border-bottom: 1px solid #262a22;
+  border-bottom: 1px solid #1f1f1f;
   white-space: nowrap;
 }
 .client-share-table td {
   padding: 8px 10px;
-  border-bottom: 1px solid #1c201a;
+  border-bottom: 1px solid #171717;
   vertical-align: middle;
 }
 .client-share-table tr:hover td {
-  background: #171915;
+  background: #141414;
 }
 .client-table-avatar {
   width: 34px;
   height: 42px;
-  background: #191c17;
-  border: 1px solid #2d3329;
+  background: #161616;
+  border: 1px solid #262626;
   border-radius: 4px;
   overflow: hidden;
   margin: 0 auto;
@@ -1637,23 +1651,24 @@ body.sidebar-collapsed .account b {
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  color: var(--accent, #b9ff66);
+  color: #ffffff;
   font-size: 11.5px;
   font-weight: 600;
   text-decoration: none;
-  background: #181d15;
+  background: #181818;
   padding: 3px 8px;
   border-radius: 4px;
-  border: 1px solid #283123;
+  border: 1px solid #2e2e2e;
   transition: all 0.12s ease;
 }
 .client-table-link-btn:hover {
-  background: var(--accent, #b9ff66);
-  color: #0b140b;
+  background: #ffffff;
+  color: #000000;
+  border-color: #ffffff;
 }
 .client-table-text {
   line-height: 1.35;
-  color: #ccc;
+  color: #cccccc;
   white-space: pre-wrap;
   word-break: break-word;
 }
@@ -1687,7 +1702,7 @@ body.sidebar-collapsed .account b {
   right: 0;
   background: rgba(255, 255, 255, 0.2);
   border: none;
-  color: #fff;
+  color: #ffffff;
   width: 30px;
   height: 30px;
   border-radius: 50%;
@@ -1698,8 +1713,8 @@ body.sidebar-collapsed .account b {
 
 /* Footer */
 .client-share-footer {
-  background: #111210;
-  border-top: 1px solid #1f221c;
+  background: #080808;
+  border-top: 1px solid #181818;
   padding: 16px 20px;
   font-size: 11px;
 }
@@ -1712,4 +1727,5 @@ body.sidebar-collapsed .account b {
   flex-wrap: wrap;
   gap: 10px;
 }
+
 
