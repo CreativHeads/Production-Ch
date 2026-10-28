@@ -202,12 +202,24 @@ export function TalentPage() {
 // ---------------------------------------------------------------- campaigns page
 export function CampaignsPage() {
   const { openDrawer } = useStudio();
-  const [tab, setTab] = useState("active");
+  const [tab, setTab] = useState("all");
   const [query, setQuery] = useState("");
   const [location, setLocation] = useState("");
-  const { data: campaigns } = useData(() => api.get("campaigns/", { scope: tab, q: query, location }), [tab, query, location]);
+  const { data: allCampaigns } = useData(() => api.get("campaigns/", { scope: "all", q: query, location }), [query, location]);
 
-  const list = campaigns || [];
+  const list = allCampaigns || [];
+  const planningList = list.filter((c) => c.status === "draft" || c.status === "planning");
+  const inProgressList = list.filter((c) => c.status === "active");
+  const completedList = list.filter((c) => c.status === "completed" || c.status === "cancelled");
+  const activeAndPlanningList = list.filter((c) => c.status !== "completed" && c.status !== "cancelled");
+
+  const shown = tab === "planning"
+    ? planningList
+    : tab === "in_progress"
+    ? inProgressList
+    : tab === "completed"
+    ? completedList
+    : activeAndPlanningList;
 
   return (
     <>
@@ -216,11 +228,17 @@ export function CampaignsPage() {
       </Heading>
 
       <div className="tabs">
-        <button className={tab === "active" ? "on" : ""} onClick={() => setTab("active")}>
-          Active campaigns
+        <button className={tab === "all" ? "on" : ""} onClick={() => setTab("all")}>
+          All active & planning <span>{activeAndPlanningList.length}</span>
+        </button>
+        <button className={tab === "planning" ? "on" : ""} onClick={() => setTab("planning")}>
+          Planning & Draft <span>{planningList.length}</span>
+        </button>
+        <button className={tab === "in_progress" ? "on" : ""} onClick={() => setTab("in_progress")}>
+          In Progress <span>{inProgressList.length}</span>
         </button>
         <button className={tab === "completed" ? "on" : ""} onClick={() => setTab("completed")}>
-          Completed
+          Completed <span>{completedList.length}</span>
         </button>
       </div>
 
@@ -241,7 +259,7 @@ export function CampaignsPage() {
       </div>
 
       <div className="projectgrid">
-        {list.map((c) => (
+        {shown.map((c) => (
           <article className="project campaign-card" key={c.id}>
             <div
               className="project-open"
@@ -252,8 +270,15 @@ export function CampaignsPage() {
             >
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 18 }}>
                 <div className="projecticon" style={{ marginBottom: 0, background: "#1c2419", color: "#b9ff66" }}>✧</div>
-                <span className="status" style={{ background: c.status === "active" ? "#1b2e1be8" : "#222", color: c.status === "active" ? "#95f589" : "#aaa" }}>
-                  {c.status.toUpperCase()}
+                <span
+                  className="status"
+                  style={{
+                    background: (c.status === "draft" || c.status === "planning") ? "#29210c" : c.status === "active" ? "#1b2e1be8" : "#222",
+                    color: (c.status === "draft" || c.status === "planning") ? "#ffd276" : c.status === "active" ? "#95f589" : "#aaa",
+                    border: (c.status === "draft" || c.status === "planning") ? "1px solid #544114" : "1px solid rgba(255,255,255,0.1)",
+                  }}
+                >
+                  {(c.status === "draft" || c.status === "planning") ? "PLANNING / DRAFT" : c.status.toUpperCase()}
                 </span>
               </div>
 

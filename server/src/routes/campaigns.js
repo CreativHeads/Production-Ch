@@ -15,10 +15,17 @@ const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: con
 module.exports = function (r) {
   // ------------------------------------------------ GET /api/campaigns
   r.get("/campaigns", wrap(async (req, res) => {
-    const scope = req.query.scope || "active";
+    const scope = req.query.scope || "all";
     const q = db("campaigns").whereNull("deleted_at").orderBy("created_at", "desc");
-    if (scope === "active") q.where("status", "active");
-    else if (scope === "completed") q.whereIn("status", ["completed", "cancelled"]);
+    if (scope === "active") {
+      q.whereNotIn("status", ["completed", "cancelled"]);
+    } else if (scope === "planning" || scope === "draft") {
+      q.whereIn("status", ["draft", "planning"]);
+    } else if (scope === "in_progress") {
+      q.where("status", "active");
+    } else if (scope === "completed") {
+      q.whereIn("status", ["completed", "cancelled"]);
+    }
 
     if (req.query.q) {
       const term = `%${req.query.q.trim()}%`;
