@@ -101,7 +101,7 @@ export function TalentForm({ id }) {
       <p style={{ marginBottom: 25 }}>Start with the essentials. Build the story as you go.</p>
       <form id="talentForm" onSubmit={(e) => submit(e)}>
         <div className="formgrid">
-          <Field label="Full name *" name="name" value={t.full_name} required />
+          <Field label="Full name" name="name" value={t.full_name} placeholder="e.g. Actor / Model name" />
           <Field label="Age" name="age" type="number" value={t.age ?? t.approx_age} min="1" max="100" />
           <label className="field">
             Gender
@@ -109,7 +109,7 @@ export function TalentForm({ id }) {
               {GENDERS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
             </select>
           </label>
-          <Field label="Location" name="location" value={t.city} />
+          <Field label="Location" name="location" value={t.city} placeholder="City / District" />
           <fieldset className="field full checks">
             <legend>Categories <small>Choose all that apply</small></legend>
             <div>
@@ -121,16 +121,16 @@ export function TalentForm({ id }) {
               ))}
             </div>
           </fieldset>
-          <Field label="Day rate (₹)" name="fee" type="number" value={t.expected_fee ? Number(t.expected_fee) : ""} min="0" />
-          <Field label="Phone *" name="phone" type="tel" value={t.phone} required />
-          <Field label="Email" name="email" type="email" value={t.email} />
+          <Field label="Day rate (₹)" name="fee" type="number" value={t.expected_fee ? Number(t.expected_fee) : ""} min="0" placeholder="0" />
+          <Field label="Phone" name="phone" type="tel" value={t.phone && t.phone !== "0000000000" ? t.phone : ""} placeholder="e.g. +91 98765 43210" />
+          <Field label="Email" name="email" type="email" value={t.email} placeholder="email@example.com" />
           <label className="field full">
             Profile photo
             <input name="photo" type="file" accept="image/jpeg,image/png,image/webp" />
             <small>JPG, PNG or WebP. Photos are cropped and resized on the server.</small>
           </label>
-          <Field label="Guardian name (required under 18)" name="guardian" value={guardian?.name} />
-          <Field label="Guardian contact (required under 18)" name="guardianPhone" value={guardian?.phone} />
+          <Field label="Guardian name (if under 18)" name="guardian" value={guardian?.name} />
+          <Field label="Guardian contact (if under 18)" name="guardianPhone" value={guardian?.phone} />
           <div className="field full">Featured videos (up to 3 links)</div>
           {[0, 1, 2].map((i) => <Field key={i} label={`Video ${i + 1}`} name={"video" + i} type="url" value={video(i)?.url} />)}
         </div>
@@ -183,52 +183,71 @@ export function InfluencerForm({ id }) {
     e && e.preventDefault();
     const form = document.getElementById("influencerForm");
     const f = new FormData(form);
-    const age = Number(f.get("age")) || 25;
+    const age = Number(f.get("age")) || null;
     const file = f.get("photo");
     if (file && file.size > 25e6) {
       setError("Please select a photo smaller than 25 MB.");
       return;
     }
-    const handle = String(f.get("instagram") || "").trim().replace(/^@/, "");
-    if (!handle) {
-      setError("Please provide a social handle or Instagram username.");
-      return;
+    let rawName = String(f.get("name") || "").trim();
+    let rawHandle = String(f.get("instagram") || "").trim();
+
+    // Auto-clean handle if full URL or leading @ was provided
+    let cleanHandleStr = rawHandle.replace(/^https?:\/\/(www\.)?instagram\.com\//i, "").replace(/\/.*$/, "").replace(/^@+/, "").trim();
+
+    // Auto-clean name if a full URL was pasted into the Name field
+    if (/^https?:\/\//i.test(rawName)) {
+      const ext = rawName.replace(/^https?:\/\/(www\.)?instagram\.com\//i, "").replace(/\/.*$/, "").replace(/^@+/, "").trim();
+      if (ext) {
+        rawName = ext.charAt(0).toUpperCase() + ext.slice(1);
+        if (!cleanHandleStr) cleanHandleStr = ext;
+      }
     }
+
+    if (!rawName && cleanHandleStr) {
+      rawName = cleanHandleStr.charAt(0).toUpperCase() + cleanHandleStr.slice(1);
+    }
+    if (!rawName) {
+      rawName = cleanHandleStr ? `@${cleanHandleStr}` : "New Influencer";
+    }
+
     setBusy(true);
     setError(null);
     try {
       let talent = t;
+      const cleanPhone = String(f.get("phone") || "").trim();
+      const phoneVal = cleanPhone === "0000000000" ? "" : cleanPhone;
       const core = {
-        full_name: String(f.get("name")).trim(),
+        full_name: rawName,
         approx_age: age,
-        gender: f.get("gender"),
-        city: String(f.get("location")).trim(),
+        gender: f.get("gender") || "",
+        city: String(f.get("location") || "").trim(),
         categories,
-        phone: String(f.get("phone")).trim(),
-        instagram: handle,
+        phone: phoneVal,
+        instagram: cleanHandleStr,
         talent_type: "influencer",
-        social_reach: String(f.get("reach")).trim(),
-        influencer_niche: String(f.get("niche")).trim(),
-        primary_platform: String(f.get("platform")).trim() || "Instagram",
+        social_reach: String(f.get("reach") || "").trim(),
+        influencer_niche: String(f.get("niche") || "").trim(),
+        primary_platform: String(f.get("platform") || "").trim() || "Instagram",
       };
       if (!id) {
         const fd = new FormData();
-        Object.entries(core).forEach(([k, v]) => fd.append(k, k === "categories" ? JSON.stringify(v) : v));
-        fd.append("photo", file);
+        Object.entries(core).forEach(([k, v]) => fd.append(k, k === "categories" ? JSON.stringify(v) : (v ?? "")));
+        if (file && file.size) fd.append("photo", file);
         if (acknowledge.length) fd.append("acknowledge_duplicates", JSON.stringify(acknowledge));
         talent = await api.post("talent/quick-add/", fd);
       }
       talent = await api.patch(`talent/${talent.id}/`, {
         ...(id ? core : {}),
         version: talent.version,
-        email: String(f.get("email")).trim(),
-        expected_fee: f.get("fee"),
+        email: String(f.get("email") || "").trim(),
+        expected_fee: f.get("fee") || null,
         fee_type: "per_post",
         talent_type: "influencer",
-        social_reach: String(f.get("reach")).trim(),
-        influencer_niche: String(f.get("niche")).trim(),
-        primary_platform: String(f.get("platform")).trim() || "Instagram",
-        instagram: handle,
+        social_reach: String(f.get("reach") || "").trim(),
+        influencer_niche: String(f.get("niche") || "").trim(),
+        primary_platform: String(f.get("platform") || "").trim() || "Instagram",
+        instagram: cleanHandleStr,
         ...(acknowledge.length ? { acknowledge_duplicates: acknowledge } : {}),
       });
       if (id && file && file.size) {
@@ -245,7 +264,7 @@ export function InfluencerForm({ id }) {
         else if (!v && url) await api.post("videos/", { talent: talent.id, position: i + 1, title: `Featured reel ${i + 1}`, url });
       }
       refresh();
-      toast("Influencer profile saved");
+      toast("Influencer profile saved ✓");
       openDrawer(<Profile id={talent.id} />);
     } catch (err) {
       if (err.code === "duplicate") setDupes(err.body.duplicates || []);
@@ -258,52 +277,54 @@ export function InfluencerForm({ id }) {
   return (
     <>
       <ModalHead title={id ? "Edit influencer" : "Add an influencer / creator"} />
-      <p style={{ marginBottom: 25 }}>Add digital creators, influencers, and voices to your network.</p>
+      <p style={{ marginBottom: 25 }}>Digital creators, influencers, and voices with social reach and collab rates.</p>
       <form id="influencerForm" onSubmit={(e) => submit(e)}>
         <div className="formgrid">
-          <Field label="Creator / Full name *" name="name" value={t.full_name} required placeholder="e.g. Anjali Menon" />
-          <Field label="Social handle / Instagram *" name="instagram" value={t.instagram ? `@${t.instagram.replace(/^@/, '')}` : ""} required placeholder="@username" />
+          <Field label="Creator / Full name" name="name" value={t.full_name && !t.full_name.startsWith("http") ? t.full_name : ""} placeholder="e.g. Subika Senthil" />
+          <Field label="Social handle / Instagram" name="instagram" value={t.instagram ? (t.instagram.startsWith("http") ? t.instagram : `@${t.instagram.replace(/^@/, '')}`) : (t.full_name && t.full_name.startsWith("http") ? t.full_name : "")} placeholder="@username or instagram.com/..." />
           <label className="field">
-            Primary platform *
+            Primary platform
             <select name="platform" defaultValue={t.primary_platform || "Instagram"}>
               <option value="Instagram">Instagram</option>
               <option value="YouTube">YouTube</option>
               <option value="TikTok">TikTok</option>
               <option value="Facebook">Facebook</option>
               <option value="LinkedIn">LinkedIn</option>
+              <option value="X">X (Twitter)</option>
             </select>
           </label>
-          <Field label="Audience reach / Followers *" name="reach" value={t.social_reach} required placeholder="e.g. 150K followers, 500K subs" />
+          <Field label="Audience reach / Followers" name="reach" value={t.social_reach} placeholder="e.g. 310K followers, 1.2M subs" />
           <label className="field">
-            Content niche *
+            Content niche
             <select name="niche" defaultValue={t.influencer_niche || "Lifestyle"}>
               <option value="Lifestyle">Lifestyle</option>
               <option value="Fashion">Fashion & Style</option>
               <option value="Beauty">Beauty & Makeup</option>
-              <option value="Tech">Tech & Gadgets</option>
               <option value="Food">Food & Culinary</option>
-              <option value="Fitness">Fitness & Wellness</option>
               <option value="Travel">Travel & Vlogs</option>
+              <option value="Tech">Tech & Gadgets</option>
+              <option value="Fitness">Fitness & Wellness</option>
               <option value="Comedy">Comedy & Skits</option>
+              <option value="Healthcare">Healthcare & Dental</option>
               <option value="Parenting">Parenting & Family</option>
               <option value="Entertainment">Entertainment</option>
               <option value="Finance">Finance & Business</option>
             </select>
           </label>
-          <Field label="Location / City *" name="location" value={t.city} required placeholder="e.g. Kochi, Mumbai, Bangalore" />
-          <Field label="Approx age" name="age" type="number" value={t.age ?? t.approx_age} min="1" max="100" />
+          <Field label="Location / City" name="location" value={t.city} placeholder="e.g. Coimbatore, Chennai, Bangalore" />
+          <Field label="Approx age" name="age" type="number" value={t.age ?? t.approx_age} min="1" max="100" placeholder="Optional" />
           <label className="field">
             Gender
             <select name="gender" defaultValue={t.gender === "male" || t.gender === "female" ? t.gender : ""}>
               {GENDERS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
             </select>
           </label>
-          <Field label="Collab fee / post (₹) *" name="fee" type="number" value={t.expected_fee ? Number(t.expected_fee) : ""} required min="0" placeholder="e.g. 25000" />
-          <Field label="Phone / WhatsApp *" name="phone" type="tel" value={t.phone} required placeholder="e.g. +91 98765 43210" />
+          <Field label="Collab fee / post (₹)" name="fee" type="number" value={t.expected_fee ? Number(t.expected_fee) : ""} min="0" placeholder="e.g. 25000" />
+          <Field label="Phone / WhatsApp" name="phone" type="tel" value={t.phone && t.phone !== "0000000000" ? t.phone : ""} placeholder="e.g. +91 98765 43210" />
           <Field label="Email" name="email" type="email" value={t.email} placeholder="collab@creator.com" />
           <label className="field full">
-            Profile photo {id ? "" : "*"}
-            <input name="photo" type="file" accept="image/jpeg,image/png,image/webp" required={!id} />
+            Profile photo
+            <input name="photo" type="file" accept="image/jpeg,image/png,image/webp" />
             <small>Clear portrait or creator avatar (JPG, PNG, or WebP).</small>
           </label>
           <div className="field full">Featured reels / sample content (up to 3 links)</div>
@@ -371,9 +392,39 @@ export function Profile({ id }) {
         {photo ? <img src={photo.profile_url} alt={t.full_name} /> : <span className="noimg">{t.full_name[0]}</span>}
         <div>
           <div className="eyebrow">{isInf ? `✦ INFLUENCER · ${(t.influencer_niche || t.primary_platform || "DIGITAL CREATOR").toUpperCase()}` : t.categories.map((c) => c.name).join(" · ")}</div>
-          <h1>{t.full_name}</h1>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", marginBottom: 6 }}>
+            <h1 style={{ margin: 0 }}>
+              {(() => {
+                let s = t.full_name || "Creator";
+                if (/^https?:\/\//i.test(s)) {
+                  const ext = s.replace(/^https?:\/\/(www\.)?instagram\.com\//i, "").replace(/\/.*$/, "").replace(/^@+/, "").trim();
+                  if (ext) s = ext.charAt(0).toUpperCase() + ext.slice(1);
+                }
+                return s;
+              })()}
+            </h1>
+            {(() => {
+              const handle = (t.instagram || "").replace(/^https?:\/\/(www\.)?instagram\.com\//i, "").replace(/\/.*$/, "").replace(/^@+/, "").trim();
+              if (!handle && !t.full_name.includes("instagram.com")) return null;
+              const cleanH = handle || t.full_name.replace(/^https?:\/\/(www\.)?instagram\.com\//i, "").replace(/\/.*$/, "").replace(/^@+/, "").trim();
+              return (
+                <a
+                  href={`https://www.instagram.com/${cleanH}/`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="talent-insta-link-btn"
+                  style={{ padding: "3px 8px", fontSize: 11 }}
+                  title={`Open @${cleanH} on Instagram ↗`}
+                >
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/>
+                  </svg>
+                  <span>@{cleanH} ↗</span>
+                </a>
+              );
+            })()}
+          </div>
           <p>
-            {t.instagram && <strong style={{ color: "#fff", marginRight: 10 }}>@{t.instagram.replace(/^@/, "")}</strong>}
             {t.city} {t.social_reach ? `· ✦ ${t.social_reach}` : ""} · {t.age ?? "—"} years · {genderLabel(t.gender)}
           </p>
         </div>
@@ -805,9 +856,11 @@ export function CampaignForm({ campaign = null }) {
   async function submit(e) {
     e.preventDefault();
     const f = new FormData(e.target);
+    const rawTitle = String(f.get("title") || "").trim();
+    const rawClient = String(f.get("client_name") || "").trim();
     const body = {
-      title: f.get("title"),
-      client_name: f.get("client_name"),
+      title: rawTitle || "New Campaign",
+      client_name: rawClient || "",
       location: f.get("location"),
       start_date: f.get("start_date") || null,
       end_date: f.get("end_date") || null,
@@ -841,8 +894,8 @@ export function CampaignForm({ campaign = null }) {
       <p style={{ marginBottom: 20 }}>Plan brand activations, influencer rosters, and finalized client budgets.</p>
       <form onSubmit={submit}>
         <div className="formgrid">
-          <Field label="Campaign Title *" name="title" value={campaign?.title} required placeholder="e.g. Summer Launch · Coimbatore" />
-          <Field label="Client / Brand Name *" name="client_name" value={campaign?.client_name} required placeholder="e.g. Malabar Gold, Myntra, Trends" />
+          <Field label="Campaign Title" name="title" value={campaign?.title} placeholder="e.g. Summer Launch · Coimbatore" />
+          <Field label="Client / Brand Name" name="client_name" value={campaign?.client_name} placeholder="e.g. Malabar Gold, Myntra, Trends" />
           <Field label="Target City / Location" name="location" value={campaign?.location || ""} placeholder="e.g. Coimbatore, Kochi, Bangalore" />
           <label className="field">
             Campaign Status
@@ -979,10 +1032,30 @@ export function CampaignInfluencerForm({ campaignId, initialData = null }) {
     try {
       const form = e.target;
       const fd = new FormData(form);
+
+      let finalName = String(name || "").trim();
+      let cleanProfile = String(profileUrl || "").trim();
+
+      // If user pasted URL into name, clean it
+      if (/^https?:\/\//i.test(finalName)) {
+        const ext = finalName.replace(/^https?:\/\/(www\.)?instagram\.com\//i, "").replace(/\/.*$/, "").replace(/^@+/, "").trim();
+        if (ext) {
+          if (!cleanProfile) cleanProfile = finalName;
+          finalName = ext.charAt(0).toUpperCase() + ext.slice(1);
+        }
+      }
+
+      // If name is blank but profile is given, derive name from profile handle
+      if (!finalName && cleanProfile) {
+        const ext = cleanProfile.replace(/^https?:\/\/(www\.)?instagram\.com\//i, "").replace(/\/.*$/, "").replace(/^@+/, "").trim();
+        finalName = ext ? (ext.charAt(0).toUpperCase() + ext.slice(1)) : "New Influencer";
+      }
+      if (!finalName) finalName = "New Influencer";
+
       if (talentId) fd.set("talent_id", talentId);
-      fd.set("name", name);
+      fd.set("name", finalName);
       fd.set("phone", phone);
-      fd.set("profile_url", profileUrl);
+      fd.set("profile_url", cleanProfile);
       fd.set("platform", platform);
       fd.set("deliverables", deliverables);
       fd.set("location", location);
@@ -993,9 +1066,9 @@ export function CampaignInfluencerForm({ campaignId, initialData = null }) {
 
       if (initialData?.id) {
         await api.patch(`campaigns/${campaignId}/influencers/${initialData.id}/`, {
-          name,
+          name: finalName,
           phone,
-          profile_url: profileUrl,
+          profile_url: cleanProfile,
           platform,
           deliverables,
           location,
@@ -1032,9 +1105,8 @@ export function CampaignInfluencerForm({ campaignId, initialData = null }) {
           {/* Name Field with Auto-Suggest */}
           <div className="field full" style={{ position: "relative" }}>
             <label style={{ display: "flex", flexDirection: "column", gap: 6, width: "100%" }}>
-              Influencer Name *
+              Influencer Name
               <input
-                required
                 value={name}
                 autoComplete="off"
                 placeholder="Type influencer name (auto-fetches existing talent)…"
@@ -1101,9 +1173,8 @@ export function CampaignInfluencerForm({ campaignId, initialData = null }) {
 
           {/* Social Handle */}
           <label className="field">
-            Profile / Handle *
+            Profile / Handle
             <input
-              required
               value={profileUrl}
               placeholder="e.g. @anjalimenon or URL"
               onChange={(e) => setProfileUrl(e.target.value)}
@@ -1124,9 +1195,8 @@ export function CampaignInfluencerForm({ campaignId, initialData = null }) {
 
           {/* Location */}
           <label className="field">
-            Location / City *
+            Location / City
             <input
-              required
               value={location}
               placeholder="e.g. Coimbatore, Kochi"
               onChange={(e) => setLocation(e.target.value)}
@@ -1135,9 +1205,8 @@ export function CampaignInfluencerForm({ campaignId, initialData = null }) {
 
           {/* Rate Fixed */}
           <label className="field">
-            Rate Fixed (₹) *
+            Rate Fixed (₹)
             <input
-              required
               type="number"
               min="0"
               value={rateFixed}
@@ -1148,9 +1217,8 @@ export function CampaignInfluencerForm({ campaignId, initialData = null }) {
 
           {/* Date Available / Time Fixed */}
           <label className="field">
-            Date Available / Time Fixed *
+            Date Available / Time Fixed
             <input
-              required
               value={dateAvailable}
               placeholder="e.g. 2026-11-05 or Available Nov 5-7"
               onChange={(e) => setDateAvailable(e.target.value)}
@@ -1507,7 +1575,7 @@ function CampaignExcelSpreadsheet({ campaign, shown, removeInfluencer, changeSta
             <tr>
               <th style={{ width: 40, textAlign: "center" }}>#</th>
               <th style={{ width: 54, textAlign: "center" }}>Photo</th>
-              <th style={{ minWidth: 140 }}>Influencer Name *</th>
+              <th style={{ minWidth: 140 }}>Influencer Name</th>
               <th style={{ minWidth: 115 }}>Phone</th>
               <th style={{ minWidth: 175 }}>Profile / Handle</th>
               <th style={{ minWidth: 160 }}>Deliverables</th>
@@ -1580,7 +1648,7 @@ function CampaignExcelSpreadsheet({ campaign, shown, removeInfluencer, changeSta
                           onClick={(e) => e.stopPropagation()}
                         >
                           <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor">
-                            <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981zm11.387-5.464c-.074-.124-.272-.198-.57-.347-.297-.149-1.758-.868-2.031-.967-.272-.099-.47-.149-.669.149-.198.297-.768.967-.941 1.165-.173.198-.347.223-.644.074-.297-.149-1.255-.462-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.521.151-.172.2-.296.3-.495.099-.198.05-.372-.025-.521-.075-.148-.669-1.611-.916-2.206-.242-.579-.487-.501-.669-.51l-.57-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.095 3.2 5.076 4.487.709.306 1.263.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.695.248-1.29.173-1.414z"/>
+                            <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981zm11.387-5.464c-.074-.124-.272-.198-.57-.347-.297-.149-1.758-.868-2.031-.967-.272-.099-.47-.149-.669.149-.198.297-.768.967-.941 1.165-.173.198-.347.223-.644.074-.297-.149-1.255-.462-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.521.151-.172.2-.296.3-.495.099-.198.05-.372-.025-.521-.075-.148-.669-1.611-.916-2.206-.242-.579-.487-.501-.669-.51l-.57-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.095 3.2 5.076 4.487.709.306 1.263.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.695.248-1.29.173-1.414z" />
                           </svg>
                         </a>
                       )}
@@ -1677,7 +1745,7 @@ function CampaignExcelSpreadsheet({ campaign, shown, removeInfluencer, changeSta
                         className="excel-grid-date-input"
                         value={inf.date_available ? inf.date_available.slice(0, 10) : ""}
                         onClick={(e) => {
-                          try { e.currentTarget.showPicker(); } catch (_) {}
+                          try { e.currentTarget.showPicker(); } catch (_) { }
                         }}
                         onChange={(e) => {
                           const val = e.target.value;
@@ -1803,7 +1871,7 @@ function CampaignExcelSpreadsheet({ campaign, shown, removeInfluencer, changeSta
                       onClick={(e) => e.stopPropagation()}
                     >
                       <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor">
-                        <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981zm11.387-5.464c-.074-.124-.272-.198-.57-.347-.297-.149-1.758-.868-2.031-.967-.272-.099-.47-.149-.669.149-.198.297-.768.967-.941 1.165-.173.198-.347.223-.644.074-.297-.149-1.255-.462-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.521.151-.172.2-.296.3-.495.099-.198.05-.372-.025-.521-.075-.148-.669-1.611-.916-2.206-.242-.579-.487-.501-.669-.51l-.57-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.095 3.2 5.076 4.487.709.306 1.263.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.695.248-1.29.173-1.414z"/>
+                        <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981zm11.387-5.464c-.074-.124-.272-.198-.57-.347-.297-.149-1.758-.868-2.031-.967-.272-.099-.47-.149-.669.149-.198.297-.768.967-.941 1.165-.173.198-.347.223-.644.074-.297-.149-1.255-.462-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.521.151-.172.2-.296.3-.495.099-.198.05-.372-.025-.521-.075-.148-.669-1.611-.916-2.206-.242-.579-.487-.501-.669-.51l-.57-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.095 3.2 5.076 4.487.709.306 1.263.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.695.248-1.29.173-1.414z" />
                       </svg>
                     </a>
                   )}
@@ -1889,7 +1957,7 @@ function CampaignExcelSpreadsheet({ campaign, shown, removeInfluencer, changeSta
                     className="excel-grid-date-input"
                     value={newDate}
                     onClick={(e) => {
-                      try { e.currentTarget.showPicker(); } catch (_) {}
+                      try { e.currentTarget.showPicker(); } catch (_) { }
                     }}
                     onChange={(e) => setNewDate(e.target.value)}
                   />

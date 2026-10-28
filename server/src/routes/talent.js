@@ -294,18 +294,40 @@ module.exports = function (r) {
     res.status(201).json(await detail(t.id, req.user));
   }));
 
-  // Quick add: only full_name and phone are required.
+  // Quick add: flexible creation without mandatory blockages.
   r.post("/talent/quick-add", upload.single("photo"), wrap(async (req, res) => {
     const b = req.body;
-    const errors = {};
-    const name = String(b.full_name || "").trim();
+    let name = String(b.full_name || "").trim();
     const phone = String(b.phone || "").trim();
     const city = String(b.city || "").trim();
+    let insta = String(b.instagram || "").trim();
     const cats = parseList(b.categories);
-    if (!name) errors.full_name = ["Full name is required."];
-    if (!phone) errors.phone = ["Primary phone number is required."];
-    if (Object.keys(errors).length) throw new ValidationError(errors);
-    const payload = { full_name: name, phone, city, district: b.district || "", gender: b.gender || "", instagram: b.instagram || "", categories: cats };
+
+    // Auto-clean handle if full URL or leading @ was sent
+    if (insta) {
+      insta = insta.replace(/^https?:\/\/(www\.)?instagram\.com\//i, "").replace(/\/.*$/, "").replace(/^@+/, "").trim();
+    }
+
+    // Auto-clean full_name if full URL was sent
+    if (/^https?:\/\//i.test(name)) {
+      const ext = name.replace(/^https?:\/\/(www\.)?instagram\.com\//i, "").replace(/\/.*$/, "").replace(/^@+/, "").trim();
+      if (ext) {
+        name = ext.charAt(0).toUpperCase() + ext.slice(1);
+        if (!insta) insta = ext;
+      }
+    }
+
+    if (!name && insta) {
+      name = insta.charAt(0).toUpperCase() + insta.slice(1);
+    }
+    if (!name && phone) {
+      name = `Creator ${phone}`;
+    }
+    if (!name) {
+      name = "New Profile";
+    }
+
+    const payload = { full_name: name, phone, city, district: b.district || "", gender: b.gender || "", instagram: insta, categories: cats };
     for (const opt of ["playing_age_min", "playing_age_max", "approx_age", "talent_type", "social_reach", "influencer_niche", "primary_platform"]) if (b[opt] !== undefined && b[opt] !== "") payload[opt] = b[opt];
     const v = await validateWrite(payload, null);
     await checkDuplicatesOrRaise(v.data, b.acknowledge_duplicates);
@@ -334,6 +356,17 @@ module.exports = function (r) {
     const b = req.body;
     if (b.version !== undefined && b.version !== null && Number(b.version) !== Number(t.version)) {
       throw new Conflict("Someone else updated this profile while you were editing. Reload to see their changes, then re-apply yours.", "stale_version", { current_version: t.version });
+    }
+    // Clean full_name or instagram if sent as URL
+    if (b.full_name && /^https?:\/\//i.test(b.full_name)) {
+      const ext = b.full_name.replace(/^https?:\/\/(www\.)?instagram\.com\//i, "").replace(/\/.*$/, "").replace(/^@+/, "").trim();
+      if (ext) {
+        b.full_name = ext.charAt(0).toUpperCase() + ext.slice(1);
+        if (!b.instagram && !t.instagram) b.instagram = ext;
+      }
+    }
+    if (b.instagram) {
+      b.instagram = b.instagram.replace(/^https?:\/\/(www\.)?instagram\.com\//i, "").replace(/\/.*$/, "").replace(/^@+/, "").trim();
     }
     const v = await validateWrite(b, t);
     if (["phone", "alt_phone", "instagram", "full_name"].some((k) => k in v.data)) {

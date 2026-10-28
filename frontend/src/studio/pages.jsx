@@ -53,22 +53,72 @@ export function Card({ t, onFav }) {
     : [...t.tags.map((x) => x.name), ...t.languages].slice(0, 3);
   const open = () => openDrawer(<Profile id={t.id} />);
   const label = isInf ? "✦ INFLUENCER" : (t.categories[0]?.name || "").toUpperCase();
+
+  const rawInsta = t.instagram || "";
+  const rawName = t.full_name || "";
+  const cleanHandle = (rawInsta || (rawName.includes("instagram.com") ? rawName : ""))
+    .replace(/^https?:\/\/(www\.)?instagram\.com\//i, "")
+    .replace(/\/.*$/, "")
+    .replace(/\?.*$/, "")
+    .replace(/^@+/, "")
+    .trim();
+
+  let displayName = rawName;
+  if (/^https?:\/\//i.test(displayName)) {
+    const ext = displayName
+      .replace(/^https?:\/\/(www\.)?instagram\.com\//i, "")
+      .replace(/\/.*$/, "")
+      .replace(/\?.*$/, "")
+      .replace(/^@+/, "")
+      .trim();
+    if (ext) {
+      displayName = ext.charAt(0).toUpperCase() + ext.slice(1);
+    } else {
+      displayName = "Creator";
+    }
+  }
+
+  const instaUrl = cleanHandle
+    ? `https://www.instagram.com/${cleanHandle}/`
+    : (/^https?:\/\//i.test(rawInsta) ? rawInsta : null);
+
   return (
     <article className="talent">
       <div className={"portrait" + (t.photo ? "" : " noimg")} onClick={open}>
-        {t.photo ? <img src={t.photo.card} alt={t.full_name} loading="lazy" /> : initials(t.full_name)}
-        <button className={"heart" + (t.is_favorite ? " saved" : "")} aria-label={`Favorite ${t.full_name}`} onClick={fav}>{t.is_favorite ? "♥" : "♡"}</button>
+        {t.photo ? <img src={t.photo.card} alt={displayName} loading="lazy" /> : initials(displayName)}
+        <button className={"heart" + (t.is_favorite ? " saved" : "")} aria-label={`Favorite ${displayName}`} onClick={fav}>{t.is_favorite ? "♥" : "♡"}</button>
         {label && <span className={"image-label" + (isInf ? " is-influencer" : "")}>{label}</span>}
       </div>
       <div className="talentinfo">
         <div className="talentname" onClick={open}>
-          <div>
-            <h3>{t.full_name}</h3>
-            {t.instagram && <small style={{ color: "#aaa", fontSize: 11, display: "block", marginTop: 2 }}>@{t.instagram.replace(/^@/, "")}</small>}
+          <div style={{ minWidth: 0, flex: 1 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+              <h3 style={{ margin: 0 }}>{displayName}</h3>
+              {instaUrl && (
+                <a
+                  href={instaUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="talent-insta-link-btn"
+                  title={`Open @${cleanHandle || "profile"} on Instagram ↗`}
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/>
+                  </svg>
+                  <span>↗</span>
+                </a>
+              )}
+            </div>
+            {cleanHandle && (
+              <small style={{ color: "#aaa", fontSize: 11, display: "block", marginTop: 2 }}>
+                @{cleanHandle}
+              </small>
+            )}
           </div>
           {isInf ? <span className="influencer-pill">✦ Influencer</span> : <span>↗</span>}
         </div>
-        <div className="meta">⌖ {t.city} &nbsp;·&nbsp; {isInf && t.social_reach ? t.social_reach : `${t.age ?? "—"} years`}</div>
+        <div className="meta">⌖ {t.city || "—"} &nbsp;·&nbsp; {isInf && t.social_reach ? t.social_reach : `${t.age ?? "—"} years`}</div>
         <div className="tags">{tags.map((x) => <span className="tag" key={x}>{x}</span>)}</div>
         <div className="cardfoot">
           <span>{t.expected_fee ? money(t.expected_fee) : "Fee TBC"} <small>{isInf ? "/ post" : "/ day"}</small></span>

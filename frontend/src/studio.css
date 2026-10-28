@@ -1742,4 +1742,26 @@ header.client-share-header,
   gap: 10px;
 }
 
+.talent-insta-link-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 4px;
+  color: #e5b158;
+  font-size: 10px;
+  padding: 2px 6px;
+  text-decoration: none;
+  line-height: 1;
+  transition: all 0.15s ease;
+  vertical-align: middle;
+}
+
+.talent-insta-link-btn:hover {
+  background: #ffffff;
+  color: #000000;
+  border-color: #ffffff;
+}
+
 

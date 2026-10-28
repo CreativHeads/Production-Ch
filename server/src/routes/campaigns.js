@@ -158,8 +158,8 @@ module.exports = function (r) {
   // ------------------------------------------------ POST /api/campaigns
   r.post("/campaigns", wrap(async (req, res) => {
     const b = req.body;
-    const title = String(b.title || "").trim();
-    if (!title) throw new ValidationError({ title: ["Campaign title is required."] });
+    let title = String(b.title || "").trim();
+    if (!title) title = "New Campaign";
 
     const seq = await sequenceNext("campaign_code");
     const code = `CAMP-${String(seq).padStart(4, "0")}`;
@@ -277,8 +277,19 @@ module.exports = function (r) {
     if (!campaign) throw notFound();
 
     const b = req.body;
-    const name = String(b.name || "").trim();
-    if (!name) throw new ValidationError({ name: ["Influencer name is required."] });
+    let name = String(b.name || "").trim();
+    if (!name) {
+      const p = String(b.profile_url || b.instagram || "").trim();
+      const ext = p.replace(/^https?:\/\/(www\.)?instagram\.com\//i, "").replace(/\/.*$/, "").replace(/^@+/, "").trim();
+      name = ext ? (ext.charAt(0).toUpperCase() + ext.slice(1)) : "New Influencer";
+    }
+    if (/^https?:\/\//i.test(name)) {
+      const ext = name.replace(/^https?:\/\/(www\.)?instagram\.com\//i, "").replace(/\/.*$/, "").replace(/^@+/, "").trim();
+      if (ext) {
+        if (!b.profile_url && !b.instagram) b.profile_url = name;
+        name = ext.charAt(0).toUpperCase() + ext.slice(1);
+      }
+    }
 
     let talentId = b.talent_id ? Number(b.talent_id) : null;
     let talent = talentId ? await db("talent").where({ id: talentId }).first() : null;
