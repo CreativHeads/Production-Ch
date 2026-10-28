@@ -886,10 +886,10 @@ export function CampaignInfluencerForm({ campaignId, initialData = null }) {
   const [profileUrl, setProfileUrl] = useState(initialData?.profile_url || "");
   const [platform, setPlatform] = useState(initialData?.platform || "Instagram");
   const [deliverables, setDeliverables] = useState(initialData?.deliverables || "");
-  const [location, setLocation] = useState(initialData?.location || "Coimbatore");
+  const [location, setLocation] = useState(initialData?.location || "");
   const [rateFixed, setRateFixed] = useState(initialData?.rate_fixed || "");
   const [dateAvailable, setDateAvailable] = useState(initialData?.date_available || "");
-  const [status, setStatus] = useState(initialData?.status || "finalised");
+  const [status, setStatus] = useState(initialData?.status || "not_contacted");
   const [remark, setRemark] = useState(initialData?.remark || "");
   const [photoPreview, setPhotoPreview] = useState(initialData?.photo_url || "");
   const [suggestions, setSuggestions] = useState([]);
@@ -1126,9 +1126,10 @@ export function CampaignInfluencerForm({ campaignId, initialData = null }) {
           <label className="field">
             Status in Campaign
             <select value={status} onChange={(e) => setStatus(e.target.value)}>
-              <option value="finalised">✓ Finalised / Confirmed</option>
+              <option value="not_contacted">Not Contacted</option>
               <option value="shortlisted">Shortlisted</option>
               <option value="pitched">Pitched to Client</option>
+              <option value="finalised">✓ Finalised / Confirmed</option>
               <option value="completed">Completed / Posted</option>
               <option value="declined">Declined</option>
             </select>
@@ -1219,7 +1220,7 @@ function CampaignExcelSpreadsheet({ campaign, shown, removeInfluencer, changeSta
   const [newLocation, setNewLocation] = useState(campaign.location || "Coimbatore");
   const [newRate, setNewRate] = useState("");
   const [newDate, setNewDate] = useState(campaign.start_date || "");
-  const [newStatus, setNewStatus] = useState("finalised");
+  const [newStatus, setNewStatus] = useState("not_contacted");
   const [newPhotoFile, setNewPhotoFile] = useState(null);
   const [newPhotoPreview, setNewPhotoPreview] = useState(null);
   const [addingNew, setAddingNew] = useState(false);
@@ -1519,10 +1520,10 @@ function CampaignExcelSpreadsheet({ campaign, shown, removeInfluencer, changeSta
                     <div style={{ display: "flex", alignItems: "center", gap: 4, height: "100%" }}>
                       <select
                         className="excel-grid-select"
-                        value={inf.status || "shortlisted"}
+                        value={inf.status || "not_contacted"}
                         style={{
                           flex: 1,
-                          color: isDone ? "#95f589" : "#bbb",
+                          color: isDone ? "#95f589" : inf.status === "not_contacted" ? "#e5b158" : inf.status === "shortlisted" ? "#64b5f6" : "#bbb",
                           fontWeight: isDone ? 600 : 400,
                         }}
                         onChange={(e) => {
@@ -1530,9 +1531,10 @@ function CampaignExcelSpreadsheet({ campaign, shown, removeInfluencer, changeSta
                           handleAutoSave(inf.id, "status", e.target.value);
                         }}
                       >
-                        <option value="finalised">✓ Finalised</option>
+                        <option value="not_contacted">Not Contacted</option>
                         <option value="shortlisted">Shortlisted</option>
                         <option value="pitched">Pitched</option>
+                        <option value="finalised">✓ Finalised</option>
                         <option value="completed">Completed</option>
                         <option value="declined">Declined</option>
                       </select>
@@ -1696,12 +1698,16 @@ function CampaignExcelSpreadsheet({ campaign, shown, removeInfluencer, changeSta
                   <select
                     className="excel-grid-select"
                     value={newStatus}
-                    style={{ flex: 1 }}
+                    style={{
+                      flex: 1,
+                      color: newStatus === "finalised" ? "#95f589" : newStatus === "not_contacted" ? "#e5b158" : newStatus === "shortlisted" ? "#64b5f6" : "#bbb",
+                    }}
                     onChange={(e) => setNewStatus(e.target.value)}
                   >
-                    <option value="finalised">✓ Finalised</option>
+                    <option value="not_contacted">Not Contacted</option>
                     <option value="shortlisted">Shortlisted</option>
                     <option value="pitched">Pitched</option>
+                    <option value="finalised">✓ Finalised</option>
                     <option value="completed">Completed</option>
                     <option value="declined">Declined</option>
                   </select>
@@ -1959,12 +1965,13 @@ export function CampaignDetail({ id, onBack, isPage }) {
                   <div className="roster-actions">
                     <select
                       className="roster-status-select"
-                      value={inf.status}
+                      value={inf.status || "not_contacted"}
                       onChange={(e) => changeStatus(inf, e.target.value)}
                     >
-                      <option value="finalised">✓ Finalised</option>
+                      <option value="not_contacted">Not Contacted</option>
                       <option value="shortlisted">Shortlisted</option>
                       <option value="pitched">Pitched</option>
+                      <option value="finalised">✓ Finalised</option>
                       <option value="completed">Completed</option>
                       <option value="declined">Declined</option>
                     </select>

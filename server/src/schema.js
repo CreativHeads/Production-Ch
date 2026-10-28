@@ -287,7 +287,7 @@ const TABLES = {
     t.string("location", 150).defaultTo("");
     t.decimal("rate_fixed", 12, 2).nullable();
     t.string("date_available", 80).defaultTo("");
-    t.string("status", 30).defaultTo("shortlisted").index();
+    t.string("status", 30).defaultTo("not_contacted").index();
     t.text("remark");
     t.integer("sort_order").defaultTo(0);
     stamps(t);

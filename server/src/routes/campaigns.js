@@ -325,7 +325,7 @@ module.exports = function (r) {
       location: String(b.location || talent.city || campaign.location || "").trim(),
       rate_fixed: b.rate_fixed ? Number(b.rate_fixed) : null,
       date_available: String(b.date_available || "").trim(),
-      status: b.status || "shortlisted",
+      status: b.status || "not_contacted",
       remark: String(b.remark || "").trim(),
       created_at: now,
       updated_at: now,
@@ -465,9 +465,9 @@ module.exports = function (r) {
         rate > 0 ? rate : "-",
         inf.date_available || "TBD",
         day,
-        inf.status ? inf.status.toUpperCase() : "SHORTLISTED",
+        inf.status ? inf.status.replace(/_/g, " ").toUpperCase() : "NOT CONTACTED",
       ]);
-      row.height = 22;
+      row.height = 25;
       row.eachCell((cell, col) => {
         cell.font = { name: "Arial", size: 10 };
         cell.alignment = {
