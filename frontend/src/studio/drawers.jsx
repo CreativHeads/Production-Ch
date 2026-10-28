@@ -843,7 +843,7 @@ export function CampaignForm({ campaign = null }) {
         <div className="formgrid">
           <Field label="Campaign Title *" name="title" value={campaign?.title} required placeholder="e.g. Summer Launch · Coimbatore" />
           <Field label="Client / Brand Name *" name="client_name" value={campaign?.client_name} required placeholder="e.g. Malabar Gold, Myntra, Trends" />
-          <Field label="Target City / Location *" name="location" value={campaign?.location || "Coimbatore"} required placeholder="e.g. Coimbatore, Kochi, Bangalore" />
+          <Field label="Target City / Location" name="location" value={campaign?.location || ""} placeholder="e.g. Coimbatore, Kochi, Bangalore" />
           <label className="field">
             Campaign Status
             <select name="status" defaultValue={campaign?.status || "active"}>
@@ -875,6 +875,41 @@ export function CampaignForm({ campaign = null }) {
       </form>
     </>
   );
+}
+
+// ---------------------------------------------------------------- Campaign Influencer Statuses & Color
+export const INFLUENCER_STATUS_OPTIONS = [
+  { value: "not_contacted", label: "Not Contacted" },
+  { value: "no_response", label: "No Respond" },
+  { value: "contacted", label: "Contacted" },
+  { value: "shortlisted", label: "Shortlisted" },
+  { value: "rejected", label: "Rejected" },
+  { value: "finalised", label: "Finalized" },
+  { value: "completed", label: "Completed" },
+];
+
+export function getInfluencerStatusColor(st) {
+  switch (st) {
+    case "finalised":
+    case "confirmed":
+      return "#95f589";
+    case "completed":
+      return "#5eead4";
+    case "not_contacted":
+      return "#e5b158";
+    case "no_response":
+      return "#8e9297";
+    case "contacted":
+    case "pitched":
+      return "#4fc3f7";
+    case "shortlisted":
+      return "#c084fc";
+    case "rejected":
+    case "declined":
+      return "#ff6b6b";
+    default:
+      return "#cccccc";
+  }
 }
 
 // ---------------------------------------------------------------- Campaign Influencer Form
@@ -1126,12 +1161,11 @@ export function CampaignInfluencerForm({ campaignId, initialData = null }) {
           <label className="field">
             Status in Campaign
             <select value={status} onChange={(e) => setStatus(e.target.value)}>
-              <option value="not_contacted">Not Contacted</option>
-              <option value="shortlisted">Shortlisted</option>
-              <option value="pitched">Pitched to Client</option>
-              <option value="finalised">✓ Finalised / Confirmed</option>
-              <option value="completed">Completed / Posted</option>
-              <option value="declined">Declined</option>
+              {INFLUENCER_STATUS_OPTIONS.map((opt) => (
+                <option key={opt.value} value={opt.value}>
+                  {opt.label}
+                </option>
+              ))}
             </select>
           </label>
 
@@ -1305,9 +1339,9 @@ function CampaignExcelSpreadsheet({ campaign, shown, removeInfluencer, changeSta
   const [newProfile, setNewProfile] = useState("");
   const [newDeliverables, setNewDeliverables] = useState("");
   const [newRemark, setNewRemark] = useState("");
-  const [newLocation, setNewLocation] = useState(campaign.location || "Coimbatore");
+  const [newLocation, setNewLocation] = useState("");
   const [newRate, setNewRate] = useState("");
-  const [newDate, setNewDate] = useState(campaign.start_date || "");
+  const [newDate, setNewDate] = useState("");
   const [newStatus, setNewStatus] = useState("not_contacted");
   const [newPhotoFile, setNewPhotoFile] = useState(null);
   const [newPhotoPreview, setNewPhotoPreview] = useState(null);
@@ -1420,7 +1454,10 @@ function CampaignExcelSpreadsheet({ campaign, shown, removeInfluencer, changeSta
       setNewProfile("");
       setNewDeliverables("");
       setNewRemark("");
+      setNewLocation("");
       setNewRate("");
+      setNewDate("");
+      setNewStatus("not_contacted");
       setNewPhotoFile(null);
       setNewPhotoPreview(null);
       refresh();
@@ -1609,7 +1646,7 @@ function CampaignExcelSpreadsheet({ campaign, shown, removeInfluencer, changeSta
                     </div>
                   </td>
                   <td>
-                    <div style={{ display: "flex", alignItems: "center", gap: 5, height: "100%", paddingLeft: 4, paddingRight: 4 }}>
+                    <div className="excel-grid-date-wrap">
                       {dayOfWeek && (
                         <span
                           className="excel-day-tag"
@@ -1619,13 +1656,32 @@ function CampaignExcelSpreadsheet({ campaign, shown, removeInfluencer, changeSta
                         </span>
                       )}
                       <input
-                        className="excel-grid-input"
-                        placeholder="YYYY-MM-DD"
-                        style={{ paddingLeft: 4 }}
-                        value={inf.date_available || ""}
-                        onChange={(e) => handleCellChange(inf.id, "date_available", e.target.value)}
-                        onBlur={(e) => handleAutoSave(inf.id, "date_available", e.target.value)}
+                        type="date"
+                        className="excel-grid-date-input"
+                        value={inf.date_available ? inf.date_available.slice(0, 10) : ""}
+                        onClick={(e) => {
+                          try { e.currentTarget.showPicker(); } catch (_) {}
+                        }}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          handleCellChange(inf.id, "date_available", val);
+                          handleAutoSave(inf.id, "date_available", val);
+                        }}
                       />
+                      {inf.date_available && (
+                        <button
+                          type="button"
+                          className="excel-date-clear-btn"
+                          title="Clear date"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleCellChange(inf.id, "date_available", "");
+                            handleAutoSave(inf.id, "date_available", "");
+                          }}
+                        >
+                          ✕
+                        </button>
+                      )}
                     </div>
                   </td>
                   <td>
@@ -1635,20 +1691,19 @@ function CampaignExcelSpreadsheet({ campaign, shown, removeInfluencer, changeSta
                         value={inf.status || "not_contacted"}
                         style={{
                           flex: 1,
-                          color: isDone ? "#95f589" : inf.status === "not_contacted" ? "#e5b158" : inf.status === "shortlisted" ? "#64b5f6" : "#bbb",
-                          fontWeight: isDone ? 600 : 400,
+                          color: getInfluencerStatusColor(inf.status || "not_contacted"),
+                          fontWeight: (inf.status === "finalised" || inf.status === "completed") ? 600 : 400,
                         }}
                         onChange={(e) => {
                           handleCellChange(inf.id, "status", e.target.value);
                           handleAutoSave(inf.id, "status", e.target.value);
                         }}
                       >
-                        <option value="not_contacted">Not Contacted</option>
-                        <option value="shortlisted">Shortlisted</option>
-                        <option value="pitched">Pitched</option>
-                        <option value="finalised">✓ Finalised</option>
-                        <option value="completed">Completed</option>
-                        <option value="declined">Declined</option>
+                        {INFLUENCER_STATUS_OPTIONS.map((opt) => (
+                          <option key={opt.value} value={opt.value}>
+                            {opt.label}
+                          </option>
+                        ))}
                       </select>
                       <button
                         type="button"
@@ -1789,20 +1844,34 @@ function CampaignExcelSpreadsheet({ campaign, shown, removeInfluencer, changeSta
                 </div>
               </td>
               <td>
-                <div style={{ display: "flex", alignItems: "center", gap: 5, height: "100%", paddingLeft: 4, paddingRight: 4 }}>
+                <div className="excel-grid-date-wrap">
                   {getDayOfWeek(newDate) && (
                     <span className="excel-day-tag">
                       {getDayOfWeek(newDate)}
                     </span>
                   )}
                   <input
-                    className="excel-grid-input"
-                    placeholder="YYYY-MM-DD"
-                    style={{ paddingLeft: 4 }}
+                    type="date"
+                    className="excel-grid-date-input"
                     value={newDate}
+                    onClick={(e) => {
+                      try { e.currentTarget.showPicker(); } catch (_) {}
+                    }}
                     onChange={(e) => setNewDate(e.target.value)}
-                    onKeyDown={(e) => e.key === "Enter" && submitNewRow()}
                   />
+                  {newDate && (
+                    <button
+                      type="button"
+                      className="excel-date-clear-btn"
+                      title="Clear date"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setNewDate("");
+                      }}
+                    >
+                      ✕
+                    </button>
+                  )}
                 </div>
               </td>
               <td>
@@ -1812,16 +1881,16 @@ function CampaignExcelSpreadsheet({ campaign, shown, removeInfluencer, changeSta
                     value={newStatus}
                     style={{
                       flex: 1,
-                      color: newStatus === "finalised" ? "#95f589" : newStatus === "not_contacted" ? "#e5b158" : newStatus === "shortlisted" ? "#64b5f6" : "#bbb",
+                      color: getInfluencerStatusColor(newStatus),
+                      fontWeight: (newStatus === "finalised" || newStatus === "completed") ? 600 : 400,
                     }}
                     onChange={(e) => setNewStatus(e.target.value)}
                   >
-                    <option value="not_contacted">Not Contacted</option>
-                    <option value="shortlisted">Shortlisted</option>
-                    <option value="pitched">Pitched</option>
-                    <option value="finalised">✓ Finalised</option>
-                    <option value="completed">Completed</option>
-                    <option value="declined">Declined</option>
+                    {INFLUENCER_STATUS_OPTIONS.map((opt) => (
+                      <option key={opt.value} value={opt.value}>
+                        {opt.label}
+                      </option>
+                    ))}
                   </select>
                   <button
                     type="button"
@@ -1865,11 +1934,6 @@ export function CampaignDetail({ id, onBack, isPage }) {
   if (error) {
     return (
       <div className="campaign-detail-fullscreen">
-        {onBack && (
-          <button className="campaign-back-btn" onClick={onBack} style={{ marginBottom: 16 }}>
-            ← Back to all campaigns
-          </button>
-        )}
         <p>Failed to load campaign: {error.message}</p>
       </div>
     );
@@ -1877,11 +1941,6 @@ export function CampaignDetail({ id, onBack, isPage }) {
   if (!campaign) {
     return (
       <div className="campaign-detail-fullscreen">
-        {onBack && (
-          <button className="campaign-back-btn" onClick={onBack} style={{ marginBottom: 16 }}>
-            ← Back to all campaigns
-          </button>
-        )}
         <div className="empty">Loading campaign roster…</div>
       </div>
     );
@@ -1920,13 +1979,6 @@ export function CampaignDetail({ id, onBack, isPage }) {
       <div className="campaign-hero-bar">
         <div className="campaign-hero-left">
           <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 6, flexWrap: "wrap" }}>
-            <button
-              className="campaign-back-btn"
-              onClick={onBack ? onBack : closeDrawer}
-              style={{ padding: "4px 10px", fontSize: 12 }}
-            >
-              ← Back to all campaigns
-            </button>
             <select
               className="campaign-status-switcher"
               value={campaign.status}
@@ -2072,14 +2124,14 @@ export function CampaignDetail({ id, onBack, isPage }) {
                     <select
                       className="roster-status-select"
                       value={inf.status || "not_contacted"}
+                      style={{ color: getInfluencerStatusColor(inf.status || "not_contacted") }}
                       onChange={(e) => changeStatus(inf, e.target.value)}
                     >
-                      <option value="not_contacted">Not Contacted</option>
-                      <option value="shortlisted">Shortlisted</option>
-                      <option value="pitched">Pitched</option>
-                      <option value="finalised">✓ Finalised</option>
-                      <option value="completed">Completed</option>
-                      <option value="declined">Declined</option>
+                      {INFLUENCER_STATUS_OPTIONS.map((opt) => (
+                        <option key={opt.value} value={opt.value}>
+                          {opt.label}
+                        </option>
+                      ))}
                     </select>
 
                     <button

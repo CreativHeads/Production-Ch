@@ -317,10 +317,7 @@ export function CampaignsPage() {
               </div>
 
               <small style={{ letterSpacing: 1.2, fontWeight: 600 }}>{c.client_name ? c.client_name.toUpperCase() : "CLIENT"}</small>
-              <h2 style={{ margin: "8px 0 10px", fontSize: 18 }}>{c.title}</h2>
-              <p style={{ margin: "0 0 16px", color: "#aaa", fontSize: 12 }}>
-                📍 {c.location || "Coimbatore"} &nbsp;·&nbsp; {c.start_date ? `${c.start_date} to ${c.end_date || "TBD"}` : "Dates TBD"}
-              </p>
+              <h2 style={{ margin: "8px 0 16px", fontSize: 18 }}>{c.title}</h2>
 
               {/* Roster & Budget summary */}
               <div className="campaign-card-kpis">
