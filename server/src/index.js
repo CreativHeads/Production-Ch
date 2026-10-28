@@ -140,7 +140,8 @@ app.use("/api", (req, res) => res.status(404).json({ detail: "Not found.", code:
 // Protected media: master and sensitive consent files require a signed-in staff member. Cards/thumbs can be viewed on public client links.
 app.get("/media/*", wrap(async (req, res) => {
   const rel = decodeURIComponent(req.params[0] || "");
-  const isPublicAsset = rel.includes("/cards/") || rel.includes("/thumbs/") || rel.includes("/watermarked/") || rel.includes("/talent/");
+  const isSensitive = rel.includes("/master/") || rel.includes("/consent/");
+  const isPublicAsset = !isSensitive && (rel.includes("/card/") || rel.includes("/cards/") || rel.includes("/thumb/") || rel.includes("/thumbs/") || rel.includes("/watermarked/") || rel.startsWith("talent/"));
   if (!req.user && !isPublicAsset) return res.status(403).send("Sign in to view this file.");
   const root = path.resolve(config.MEDIA_ROOT);
   const full = path.resolve(root, rel);
