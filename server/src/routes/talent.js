@@ -235,7 +235,7 @@ module.exports = function (r) {
   r.get("/talent", wrap(async (req, res) => {
     const settings = await getSettings();
     const q = F.filterTalent(req.query, req.user, settings);
-    F.applySort(q, req.query.sort || "name");
+    F.applySort(q, req.query.sort || "name", req.query.type);
     const cc = settings.default_country_code;
     res.json(await F.paginate(q, req.query, async (rows) => (await T.hydrate(rows, req.user)).map((t) => T.listPayload(Object.assign(t, { _cc: cc })))));
   }));
@@ -243,8 +243,19 @@ module.exports = function (r) {
   r.get("/talent/cities", wrap(async (req, res) => {
     const rows = await db("talent").whereNull("deleted_at").where({ is_archived: false }).select("city", "district");
     const title = (s) => s.trim().toLowerCase().replace(/\b\w/g, (c) => c.toUpperCase());
-    const uniq = (vals) => [...new Set(vals.filter((v) => v && v.trim()).map(title))].sort();
-    res.json({ cities: uniq(rows.map((x) => x.city)), districts: uniq(rows.map((x) => x.district)) });
+    const splitAndClean = (rawList) => {
+      const items = [];
+      for (const str of rawList) {
+        if (!str || !str.trim()) continue;
+        const parts = str.split(",");
+        for (const p of parts) {
+          const t = title(p);
+          if (t && !items.includes(t)) items.push(t);
+        }
+      }
+      return items.sort();
+    };
+    res.json({ cities: splitAndClean(rows.map((x) => x.city)), districts: splitAndClean(rows.map((x) => x.district)) });
   }));
 
   r.get("/talent/trash", wrap(async (req, res) => {

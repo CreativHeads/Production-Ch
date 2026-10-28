@@ -211,7 +211,7 @@ module.exports = function (r) {
     const ids = (b.ids || []).map(Number).filter(Number.isInteger);
     let q;
     if (ids.length) q = db("talent").whereNull("deleted_at").whereIn("id", ids).orderBy("full_name");
-    else q = F.applySort(F.filterTalent(filters, req.user, await getSettings()), filters.sort || "name");
+    else q = F.applySort(F.filterTalent(filters, req.user, await getSettings()), filters.sort || "name", filters.type);
     if (audience === "client") q.where("talent.consent_hold", false);
     const talents = await q;
     const id = await insertId("export_jobs", {

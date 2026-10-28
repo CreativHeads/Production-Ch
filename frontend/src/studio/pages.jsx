@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { api } from "../lib/api";
 import { CampaignDetail, CampaignForm, CastForm, InfluencerForm, Profile, ProjectDetail, ProjectForm, ShortlistTalent, TalentForm, deleteProject } from "./drawers";
-import { Field, FormError, Heading, Photo, Status, initials, money, pad2, shortDate, useData, useStudio } from "./shared";
+import { Field, FormError, Heading, MultiSelectDropdown, Photo, Status, initials, money, pad2, shortDate, useData, useStudio } from "./shared";
 
 async function exportTalent(format, filters, toast) {
   try {
@@ -82,12 +82,12 @@ export function Card({ t, onFav }) {
 // ---------------------------------------------------------------- talent directory (casts + influencers)
 export function TalentPage() {
   const { openDrawer, toast, talentQuery, setTalentQuery, version } = useStudio();
-  const [tab, setTab] = useState("all");
+  const [tab, setTab] = useState("cast");
   const [query, setQuery] = useState(talentQuery || "");
   const [debounced, setDebounced] = useState(query);
-  const [cat, setCat] = useState("");
-  const [gender, setGender] = useState("");
-  const [loc, setLoc] = useState("");
+  const [cats, setCats] = useState([]);
+  const [genders, setGenders] = useState([]);
+  const [locs, setLocs] = useState([]);
   const [sort, setSort] = useState("recent");
   const [filters, setFilters] = useState(false);
   const [minAge, setMinAge] = useState("");
@@ -110,8 +110,15 @@ export function TalentPage() {
   const typeParam = tab === "cast" ? "cast" : tab === "influencers" ? "influencer" : "";
   const params = {
     ...(typeParam ? { type: typeParam } : {}),
-    q: debounced, category: cat, gender, city: loc, actual_age_min: minAge, actual_age_max: maxAge, fee_max: maxFee,
-    favorite: tab === "fav" ? "1" : "", sort: tab === "recent" || sort === "recent" ? "newest" : sort === "fee" ? "fee" : "name",
+    q: debounced,
+    category: cats.join(","),
+    gender: genders.join(","),
+    city: locs.join(","),
+    actual_age_min: minAge,
+    actual_age_max: maxAge,
+    fee_max: maxFee,
+    favorite: tab === "fav" ? "1" : "",
+    sort: tab === "recent" || sort === "recent" ? "newest" : sort === "fee" ? "fee" : "name",
     page_size: tab === "recent" ? 4 : 200,
   };
 
@@ -133,7 +140,7 @@ export function TalentPage() {
   }, [JSON.stringify(params), version]);
 
   const reset = () => {
-    setMinAge(""); setMaxAge(""); setMaxFee(""); setQuery(""); setCat(""); setLoc(""); setGender("");
+    setMinAge(""); setMaxAge(""); setMaxFee(""); setQuery(""); setCats([]); setLocs([]); setGenders([]);
   };
   const exportFilters = { ...params, page_size: undefined };
   const shown = rows ? rows.results : [];
@@ -146,8 +153,8 @@ export function TalentPage() {
       </Heading>
       <Stats />
       <div className="tabs">
-        <button className={tab === "all" ? "on" : ""} onClick={() => setTab("all")}>All talent <span>{counts.all}</span></button>
         <button className={tab === "cast" ? "on" : ""} onClick={() => setTab("cast")}>Actors & Cast <span>{counts.cast}</span></button>
+        <button className={tab === "all" ? "on" : ""} onClick={() => setTab("all")}>All talent <span>{counts.all}</span></button>
         <button className={tab === "influencers" ? "on" : ""} onClick={() => setTab("influencers")}>✦ Influencers <span>{counts.inf}</span></button>
         <button className={tab === "fav" ? "on" : ""} onClick={() => setTab("fav")}>Favorites <span>{counts.fav}</span></button>
         <button className={tab === "recent" ? "on" : ""} onClick={() => setTab("recent")}>Recently added</button>
@@ -156,20 +163,31 @@ export function TalentPage() {
         <div className="search">
           <input aria-label="Search talent" placeholder="Search names, social handles, skills, or tags…" value={query} onChange={(e) => setQuery(e.target.value)} />
         </div>
-        <select aria-label="Category" value={cat} onChange={(e) => setCat(e.target.value)}>
-          <option value="">All categories</option>
-          {(terms || []).map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-        </select>
-        <select aria-label="Gender" value={gender} onChange={(e) => setGender(e.target.value)}>
-          <option value="">All genders</option>
-          <option value="male">Male</option>
-          <option value="female">Female</option>
-          <option value="unspecified">Not specified</option>
-        </select>
-        <select aria-label="Location" value={loc} onChange={(e) => setLoc(e.target.value)}>
-          <option value="">All locations</option>
-          {(places?.cities || []).map((c) => <option key={c}>{c}</option>)}
-        </select>
+        <MultiSelectDropdown
+          label="All categories"
+          options={terms || []}
+          value={cats}
+          onChange={setCats}
+          ariaLabel="Category filter"
+        />
+        <MultiSelectDropdown
+          label="All genders"
+          options={[
+            { value: "male", label: "Male" },
+            { value: "female", label: "Female" },
+            { value: "unspecified", label: "Not specified" },
+          ]}
+          value={genders}
+          onChange={setGenders}
+          ariaLabel="Gender filter"
+        />
+        <MultiSelectDropdown
+          label="All locations"
+          options={places?.cities || []}
+          value={locs}
+          onChange={setLocs}
+          ariaLabel="Location filter"
+        />
         <button onClick={() => setFilters(!filters)}>☷ &nbsp; Filters {filters ? "−" : "+"}</button>
       </div>
       {filters && (

@@ -1,5 +1,4 @@
-// Shared state for the studio UI: navigation, drawer, toast, data refresh.
-import { createContext, useCallback, useContext, useEffect, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { api } from "../lib/api";
 
 export const Studio = createContext(null);
@@ -135,4 +134,167 @@ export function errorText(e) {
 export function FormError({ error }) {
   if (!error) return <div className="formerror" />;
   return <div className="formerror" style={{ whiteSpace: "pre-line" }}>{typeof error === "string" ? error : errorText(error)}</div>;
+}
+
+export function MultiSelectDropdown({
+  label = "Select options",
+  options = [],
+  value = [],
+  onChange,
+  ariaLabel,
+}) {
+  const [open, setOpen] = useState(false);
+  const [search, setSearch] = useState("");
+  const dropdownRef = useRef(null);
+
+  const normalizedOptions = useMemo(() => {
+    return (options || []).map((opt) => {
+      if (typeof opt === "object" && opt !== null) {
+        const val = String(opt.id !== undefined ? opt.id : (opt.value !== undefined ? opt.value : ""));
+        const lbl = String(opt.name || opt.label || opt.value || val);
+        return { value: val, label: lbl };
+      }
+      return { value: String(opt), label: String(opt) };
+    });
+  }, [options]);
+
+  const selectedStrings = useMemo(() => (value || []).map(String), [value]);
+
+  const filteredOptions = useMemo(() => {
+    if (!search.trim()) return normalizedOptions;
+    const s = search.toLowerCase();
+    return normalizedOptions.filter((opt) => opt.label.toLowerCase().includes(s));
+  }, [normalizedOptions, search]);
+
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
+        setOpen(false);
+      }
+    };
+    if (open) {
+      document.addEventListener("mousedown", handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [open]);
+
+  const toggleOption = (val) => {
+    const strVal = String(val);
+    if (selectedStrings.includes(strVal)) {
+      onChange(value.filter((v) => String(v) !== strVal));
+    } else {
+      onChange([...value, val]);
+    }
+  };
+
+  const getDisplayText = () => {
+    if (!value || value.length === 0) return label;
+    if (value.length === 1) {
+      const match = normalizedOptions.find((o) => o.value === selectedStrings[0]);
+      return match ? match.label : selectedStrings[0];
+    }
+    const cleanLabel = label.replace(/^All\s+/i, "");
+    return `${cleanLabel} (${value.length})`;
+  };
+
+  return (
+    <div className="multiselect-wrapper" ref={dropdownRef}>
+      <button
+        type="button"
+        className={`multiselect-btn ${value && value.length > 0 ? "has-selection" : ""}`}
+        onClick={() => setOpen((prev) => !prev)}
+        aria-label={ariaLabel || label}
+        aria-haspopup="listbox"
+        aria-expanded={open}
+      >
+        <span className="multiselect-label" title={getDisplayText()}>
+          {getDisplayText()}
+        </span>
+        <span className="multiselect-controls">
+          {value && value.length > 0 && (
+            <span
+              role="button"
+              tabIndex={0}
+              className="multiselect-clear-btn"
+              title="Clear selection"
+              onClick={(e) => {
+                e.stopPropagation();
+                onChange([]);
+              }}
+            >
+              ✕
+            </span>
+          )}
+          <span className={`multiselect-arrow ${open ? "up" : ""}`}>▾</span>
+        </span>
+      </button>
+
+      {open && (
+        <div className="multiselect-dropdown">
+          {normalizedOptions.length > 5 && (
+            <div className="multiselect-search">
+              <input
+                type="text"
+                placeholder={`Search ${label.replace(/^All\s+/i, "").toLowerCase()}…`}
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                autoFocus
+              />
+            </div>
+          )}
+          <div className="multiselect-header">
+            <span>{value?.length || 0} selected</span>
+            <div className="multiselect-actions">
+              {filteredOptions.length > 0 && (value?.length || 0) < filteredOptions.length && (
+                <button
+                  type="button"
+                  className="multiselect-link-btn"
+                  onClick={() => {
+                    const combined = Array.from(new Set([...selectedStrings, ...filteredOptions.map((o) => o.value)]));
+                    onChange(combined);
+                  }}
+                >
+                  Select all
+                </button>
+              )}
+              {value && value.length > 0 && (
+                <button
+                  type="button"
+                  className="multiselect-link-btn"
+                  onClick={() => onChange([])}
+                >
+                  Clear
+                </button>
+              )}
+            </div>
+          </div>
+          <div className="multiselect-list" role="listbox">
+            {filteredOptions.map((opt) => {
+              const checked = selectedStrings.includes(opt.value);
+              return (
+                <label
+                  key={opt.value}
+                  className={`multiselect-item ${checked ? "selected" : ""}`}
+                >
+                  <input
+                    type="checkbox"
+                    checked={checked}
+                    onChange={() => toggleOption(opt.value)}
+                  />
+                  <span className="multiselect-item-name" title={opt.label}>
+                    {opt.label}
+                  </span>
+                </label>
+              );
+            })}
+            {filteredOptions.length === 0 && (
+              <div className="multiselect-empty">No options found</div>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
 }

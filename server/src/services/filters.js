@@ -189,7 +189,15 @@ function filterTalent(p, user, s) {
     if (vals.length) q.whereIn(`talent.${field}`, vals);
   }
   const cities = multi(p, "city");
-  if (cities.length) q.where((w) => cities.forEach((c) => w.orWhereRaw("LOWER(talent.city) = ?", [c.toLowerCase()])));
+  if (cities.length) {
+    q.where((w) => {
+      cities.forEach((c) => {
+        const cl = c.toLowerCase();
+        w.orWhereRaw("LOWER(talent.city) = ?", [cl])
+         .orWhereRaw("LOWER(talent.city) LIKE ?", [`%${cl}%`]);
+      });
+    });
+  }
   const districts = multi(p, "district");
   if (districts.length) q.where((w) => districts.forEach((d) => w.orWhereRaw("LOWER(talent.district) = ?", [d.toLowerCase()])));
   const location = String(p.location || "").trim();
@@ -277,7 +285,10 @@ function filterTalent(p, user, s) {
   return q;
 }
 
-function applySort(q, sort) {
+function applySort(q, sort, type) {
+  if (!type) {
+    q.orderByRaw("CASE WHEN talent.type = 'cast' THEN 0 ELSE 1 END ASC");
+  }
   for (const [col, dir] of SORTS[sort] || SORTS.name) {
     if (col === "raw") q.orderByRaw(dir);
     else q.orderBy(col, dir);
