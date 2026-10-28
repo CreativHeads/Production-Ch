@@ -34,6 +34,54 @@ function getDayOfWeek(dateStr) {
 }
 
 module.exports = function (r) {
+  // ------------------------------------------------ GET /api/public/campaigns/:id (Public Client View)
+  r.get("/public/campaigns/:id", wrap(async (req, res) => {
+    const c = await db("campaigns")
+      .where((w) => w.where("id", req.params.id).orWhere("code", req.params.id))
+      .whereNull("deleted_at")
+      .first();
+    if (!c) throw notFound();
+
+    const influencers = await db("campaign_influencers").where({ campaign_id: c.id }).orderBy("id", "asc");
+    const talentIds = [...new Set(influencers.map((i) => i.talent_id).filter(Boolean))];
+
+    const photos = talentIds.length
+      ? await db("talent_photos").whereIn("talent_id", talentIds).where({ is_primary: true })
+      : [];
+    const photoMap = new Map(photos.map((p) => [p.talent_id, T.mediaUrl(p.card || p.thumb)]));
+
+    const roster = influencers.map((inf) => {
+      const livePhoto = inf.talent_id && photoMap.get(inf.talent_id);
+      return {
+        id: inf.id,
+        name: inf.name,
+        photo_url: livePhoto || inf.photo_url || null,
+        profile_url: inf.profile_url || "",
+        platform: inf.platform || "Instagram",
+        deliverables: inf.deliverables || "",
+        rate_fixed: money(inf.rate_fixed),
+        date_available: inf.date_available || "",
+        status: inf.status || "not_contacted",
+        remark: inf.remark || "",
+      };
+    });
+
+    const finalised = roster.filter((i) => i.status === "finalised" || i.status === "confirmed");
+    const totalRate = finalised.reduce((acc, i) => acc + (Number(i.rate_fixed) || 0), 0);
+
+    res.json({
+      id: c.id,
+      code: c.code,
+      title: c.title,
+      client_name: c.client_name,
+      status: c.status,
+      influencers_count: roster.length,
+      finalised_count: finalised.length,
+      total_rate: totalRate,
+      roster,
+    });
+  }));
+
   // ------------------------------------------------ GET /api/campaigns
   r.get("/campaigns", wrap(async (req, res) => {
     const scope = req.query.scope || "all";

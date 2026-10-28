@@ -187,6 +187,8 @@ function ResetPassword() {
   );
 }
 
+import PublicCampaignShare from "./PublicCampaignShare";
+
 function Signed({ user, setUser }) {
   const value = useStudioState(user, setUser);
   return (
@@ -197,6 +199,20 @@ function Signed({ user, setUser }) {
 }
 
 export default function StudioApp() {
+  // Check if this is a public client campaign share link
+  const hash = window.location.hash || "";
+  const path = window.location.pathname || "";
+  let publicCampaignId = null;
+  if (hash.startsWith("#/share/campaign/") || hash.startsWith("#share-campaign-")) {
+    publicCampaignId = hash.replace(/^#\/?share\/?campaign\/?-?/, "").split("?")[0];
+  } else if (path.startsWith("/share/campaign/")) {
+    publicCampaignId = path.replace(/^\/share\/campaign\//, "").split("?")[0];
+  }
+
+  if (publicCampaignId) {
+    return <PublicCampaignShare campaignId={publicCampaignId} />;
+  }
+
   const [user, setUser] = useState(undefined);
   useEffect(() => {
     setUnauthorizedHandler(() => setUser(null));

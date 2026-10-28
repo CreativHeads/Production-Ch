@@ -120,7 +120,7 @@ app.use(["/api", "/media"], wrap(async (req, res, next) => {
 // ---------------------------------------------------------------- routes
 const PUBLIC_API = new Set(["/auth/csrf/", "/auth/login/", "/auth/password/reset/", "/auth/password/reset/confirm/", "/health/"]);
 app.use("/api", (req, res, next) => {
-  if (PUBLIC_API.has(req.path) || req.user) return next();
+  if (PUBLIC_API.has(req.path) || req.path.startsWith("/public/") || req.user) return next();
   res.status(403).json({ detail: "Your session has ended. Please sign in again.", code: "not_authenticated" });
 });
 
@@ -137,10 +137,11 @@ require("./routes/studio")(api);
 app.use("/api", api);
 app.use("/api", (req, res) => res.status(404).json({ detail: "Not found.", code: "not_found" }));
 
-// Protected media: every file requires a signed-in staff member.
+// Protected media: master and sensitive consent files require a signed-in staff member. Cards/thumbs can be viewed on public client links.
 app.get("/media/*", wrap(async (req, res) => {
-  if (!req.user) return res.status(403).send("Sign in to view this file.");
   const rel = decodeURIComponent(req.params[0] || "");
+  const isPublicAsset = rel.includes("/cards/") || rel.includes("/thumbs/") || rel.includes("/watermarked/") || rel.includes("/talent/");
+  if (!req.user && !isPublicAsset) return res.status(403).send("Sign in to view this file.");
   const root = path.resolve(config.MEDIA_ROOT);
   const full = path.resolve(root, rel);
   if (!full.startsWith(root + path.sep) || !fs.existsSync(full) || !fs.statSync(full).isFile()) throw notFound();
