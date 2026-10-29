@@ -719,16 +719,23 @@ export function ReviewsPage() {
             t.rates_reviewed_at ? "Reviewed " + new Date(t.rates_reviewed_at).toLocaleDateString("en-IN") : "",
           ].filter(Boolean);
           return (
-            <div className="row" key={t.id}>
-              <div className="rowperson">
+            <div className="row review-row" key={t.id}>
+              <div className="rowperson" onClick={() => openDrawer(<Profile id={t.id} />)} style={{ cursor: "pointer" }}>
                 <Photo src={t.photo?.thumb} name={t.full_name} />
-                <div>{t.full_name}<small>{notes.join(" · ")}</small></div>
+                <div className="review-person-info">
+                  <div className="review-person-name">{t.full_name}</div>
+                  {notes.length > 0 && <small>{notes.join(" · ")}</small>}
+                </div>
               </div>
-              <div style={{ width: 120 }}>
-                <small>{t.completeness}% complete</small>
-                <div className="bar"><i style={{ width: `${t.completeness}%` }} /></div>
+              <div className="review-progress-col">
+                <div className="review-progress-meta">
+                  <span className="review-progress-label">{t.completeness}% complete</span>
+                </div>
+                <div className="review-progress-bar">
+                  <i style={{ width: `${t.completeness}%` }} />
+                </div>
               </div>
-              <div className="actions">
+              <div className="actions review-actions">
                 <button onClick={() => openDrawer(<TalentForm id={t.id} />)}>Update</button>
                 <button onClick={() => reviewed(t)}>Mark reviewed</button>
               </div>
