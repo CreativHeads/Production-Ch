@@ -11,3 +11,10 @@ ads.creativheads.com {
 	encode gzip
 	reverse_proxy ad-reports:3000
 }
+
+# Cue content tracker (deployed from /opt/cue, joined to this network as "cue-tracker").
+cue.creativheads.com {
+	encode gzip
+	reverse_proxy cue-tracker:3000
+}
+
