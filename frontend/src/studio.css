@@ -481,11 +481,11 @@ aside{overflow-y:auto}
 }
 .excel-grid-textarea {
   resize: none;
-  line-height: 1.38;
+  line-height: 1.32;
   height: 100%;
   min-height: 56px;
-  padding: 6px 8px;
-  font-size: 11.5px;
+  padding: 5px 6px;
+  font-size: 11px;
   white-space: pre-wrap;
   word-break: break-word;
   overflow-y: auto;
@@ -608,25 +608,25 @@ aside{overflow-y:auto}
   transform: translateY(-50%) scale(1.12);
 }
 .excel-day-tag {
-  font-size: 10px;
+  font-size: 9px;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
-  padding: 2px 6px;
+  letter-spacing: 0.4px;
+  padding: 1px 4px;
   background: #1b261b;
   color: #88f58b;
   border: 1px solid #2e442c;
-  border-radius: 4px;
+  border-radius: 3px;
   flex-shrink: 0;
   white-space: nowrap;
 }
 .excel-grid-date-wrap {
   display: flex;
   align-items: center;
-  gap: 5px;
+  gap: 4px;
   height: 100%;
-  padding-left: 6px;
-  padding-right: 6px;
+  padding-left: 4px;
+  padding-right: 4px;
   position: relative;
 }
 .excel-grid-date-input {
@@ -635,11 +635,12 @@ aside{overflow-y:auto}
   background: transparent;
   border: 1px solid transparent;
   color: #eee;
-  padding: 8px 6px;
-  font-size: 13px;
+  padding: 6px 2px;
+  font-size: 11.5px;
   font-family: inherit;
   outline: none;
   width: 100%;
+  min-width: 0;
   box-sizing: border-box;
   transition: background 0.12s ease, border-color 0.12s ease;
 }
@@ -742,6 +743,65 @@ input[type="number"] {
   padding: 6px 10px;
   border-radius: 5px;
   margin: 6px 0;
+}
+.roster-fields-grid {
+  display: grid;
+  grid-template-columns: 1.2fr 1.4fr 1.1fr;
+  gap: 10px;
+  margin: 8px 0 6px;
+  background: #111111;
+  border: 1px solid #202020;
+  border-radius: 6px;
+  padding: 10px 14px;
+}
+@media (max-width: 960px) {
+  .roster-fields-grid {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+}
+.roster-field-box {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+.roster-field-label {
+  font-size: 9.5px;
+  font-weight: 800;
+  color: #777;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.roster-field-content {
+  font-size: 12px;
+  color: #eee;
+  line-height: 1.35;
+  word-break: break-word;
+}
+.roster-deliverables-text {
+  color: #88f58b;
+  font-weight: 600;
+}
+.roster-remark-text {
+  color: #ddd;
+  font-style: italic;
+}
+.roster-date-text {
+  color: #ffd276;
+  font-weight: 500;
+}
+.roster-date-text b {
+  color: #88f58b;
+  font-weight: 700;
+}
+.roster-empty-text {
+  color: #555;
+  font-style: italic;
+  font-size: 11px;
 }
 .excel-cell-save-icon {
   background: var(--accent);
@@ -1266,6 +1326,16 @@ header.client-share-header,
   font-weight: 800;
   color: #ffffff;
 }
+.client-kpi-pill.highlighted {
+  border-color: rgba(34, 197, 94, 0.4);
+  background: rgba(34, 197, 94, 0.08);
+}
+.client-kpi-pill.highlighted span {
+  color: #4ade80;
+}
+.client-kpi-pill.highlighted strong {
+  color: #4ade80;
+}
 
 /* Body & Controls */
 .client-share-body {
@@ -1762,6 +1832,112 @@ header.client-share-header,
   background: #ffffff;
   color: #000000;
   border-color: #ffffff;
+}
+
+/* Mobile responsive centering for Campaign Showcase */
+@media (max-width: 680px) {
+  .client-share-header {
+    padding: 16px 14px 18px !important;
+  }
+  .client-share-brand-row {
+    justify-content: center !important;
+    text-align: center;
+    margin-bottom: 12px;
+  }
+  .client-share-title-row {
+    flex-direction: column !important;
+    align-items: center !important;
+    text-align: center !important;
+    justify-content: center !important;
+    gap: 14px;
+  }
+  .client-share-title-row > div:first-child {
+    text-align: center !important;
+    width: 100%;
+  }
+  .client-share-sub {
+    text-align: center !important;
+  }
+  .client-share-title {
+    text-align: center !important;
+    font-size: 22px;
+  }
+  .client-share-kpis {
+    display: grid !important;
+    grid-template-columns: repeat(3, 1fr) !important;
+    width: 100% !important;
+    max-width: 440px;
+    gap: 6px !important;
+    margin: 0 auto;
+    justify-content: center;
+  }
+  .client-kpi-pill {
+    min-width: 0 !important;
+    padding: 6px 8px !important;
+    text-align: center !important;
+    align-items: center !important;
+  }
+  .client-kpi-pill span {
+    font-size: 8.5px;
+    text-align: center;
+  }
+  .client-kpi-pill strong {
+    font-size: 14px;
+    text-align: center;
+  }
+  .client-share-body {
+    padding: 16px 12px 50px !important;
+  }
+  .client-share-controls {
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 12px !important;
+    width: 100%;
+  }
+  .client-share-tabs {
+    width: 100% !important;
+    max-width: 440px;
+    justify-content: center !important;
+    margin: 0 auto !important;
+    box-sizing: border-box;
+  }
+  .client-share-tabs button {
+    flex: 1;
+    text-align: center;
+    padding: 6px 8px;
+    font-size: 11px;
+    white-space: nowrap;
+  }
+  .client-share-tools {
+    width: 100% !important;
+    max-width: 440px;
+    justify-content: center !important;
+    margin: 0 auto !important;
+  }
+  .client-search-wrap {
+    min-width: 0 !important;
+    max-width: 100% !important;
+    width: 100% !important;
+  }
+  .client-cards-grid {
+    grid-template-columns: 1fr !important;
+    justify-items: center !important;
+    justify-content: center !important;
+    width: 100%;
+  }
+  .client-face-card {
+    width: 100% !important;
+    max-width: 440px;
+    margin: 0 auto !important;
+    box-sizing: border-box;
+  }
+  .client-share-footer-inner {
+    flex-direction: column !important;
+    text-align: center !important;
+    justify-content: center !important;
+    gap: 8px;
+  }
 }
 
 

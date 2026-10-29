@@ -1578,11 +1578,11 @@ function CampaignExcelSpreadsheet({ campaign, shown, removeInfluencer, changeSta
               <th style={{ minWidth: 140 }}>Influencer Name</th>
               <th style={{ minWidth: 115 }}>Phone</th>
               <th style={{ minWidth: 175 }}>Profile / Handle</th>
-              <th style={{ minWidth: 160 }}>Deliverables</th>
-              <th style={{ minWidth: 175 }}>Remarks</th>
-              <th style={{ minWidth: 95 }}>Location</th>
+              <th style={{ minWidth: 115 }}>Deliverables</th>
               <th style={{ minWidth: 95 }}>Rate Fixed (₹)</th>
-              <th style={{ minWidth: 135 }}>Date / Time Fixed</th>
+              <th style={{ minWidth: 120 }}>Remarks</th>
+              <th style={{ minWidth: 95 }}>Location</th>
+              <th style={{ minWidth: 100 }}>Date / Time Fixed</th>
               <th style={{ minWidth: 120 }}>Status</th>
             </tr>
           </thead>
@@ -1690,25 +1690,6 @@ function CampaignExcelSpreadsheet({ campaign, shown, removeInfluencer, changeSta
                     />
                   </td>
                   <td>
-                    <textarea
-                      className="excel-grid-input excel-grid-textarea"
-                      placeholder="Notes / follower count"
-                      rows={3}
-                      value={inf.remark || ""}
-                      onChange={(e) => handleCellChange(inf.id, "remark", e.target.value)}
-                      onBlur={(e) => handleAutoSave(inf.id, "remark", e.target.value)}
-                    />
-                  </td>
-                  <td>
-                    <input
-                      className="excel-grid-input"
-                      placeholder="Location"
-                      value={inf.location || ""}
-                      onChange={(e) => handleCellChange(inf.id, "location", e.target.value)}
-                      onBlur={(e) => handleAutoSave(inf.id, "location", e.target.value)}
-                    />
-                  </td>
-                  <td>
                     <div className="excel-rate-cell">
                       <span className="excel-rate-currency">₹</span>
                       <input
@@ -1729,6 +1710,25 @@ function CampaignExcelSpreadsheet({ campaign, shown, removeInfluencer, changeSta
                         }}
                       />
                     </div>
+                  </td>
+                  <td>
+                    <textarea
+                      className="excel-grid-input excel-grid-textarea"
+                      placeholder="Notes / follower count"
+                      rows={3}
+                      value={inf.remark || ""}
+                      onChange={(e) => handleCellChange(inf.id, "remark", e.target.value)}
+                      onBlur={(e) => handleAutoSave(inf.id, "remark", e.target.value)}
+                    />
+                  </td>
+                  <td>
+                    <input
+                      className="excel-grid-input"
+                      placeholder="Location"
+                      value={inf.location || ""}
+                      onChange={(e) => handleCellChange(inf.id, "location", e.target.value)}
+                      onBlur={(e) => handleAutoSave(inf.id, "location", e.target.value)}
+                    />
                   </td>
                   <td>
                     <div className="excel-grid-date-wrap">
@@ -1913,6 +1913,20 @@ function CampaignExcelSpreadsheet({ campaign, shown, removeInfluencer, changeSta
                 />
               </td>
               <td>
+                <div className="excel-rate-cell">
+                  <span className="excel-rate-currency">₹</span>
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    className="excel-grid-input excel-grid-num"
+                    placeholder="0"
+                    value={formatRate(newRate)}
+                    onChange={(e) => setNewRate(e.target.value.replace(/[^0-9.]/g, ""))}
+                    onKeyDown={(e) => e.key === "Enter" && submitNewRow()}
+                  />
+                </div>
+              </td>
+              <td>
                 <textarea
                   className="excel-grid-input excel-grid-textarea"
                   placeholder="Notes / follower count"
@@ -1930,20 +1944,6 @@ function CampaignExcelSpreadsheet({ campaign, shown, removeInfluencer, changeSta
                   onChange={(e) => setNewLocation(e.target.value)}
                   onKeyDown={(e) => e.key === "Enter" && submitNewRow()}
                 />
-              </td>
-              <td>
-                <div className="excel-rate-cell">
-                  <span className="excel-rate-currency">₹</span>
-                  <input
-                    type="text"
-                    inputMode="numeric"
-                    className="excel-grid-input excel-grid-num"
-                    placeholder="0"
-                    value={formatRate(newRate)}
-                    onChange={(e) => setNewRate(e.target.value.replace(/[^0-9.]/g, ""))}
-                    onKeyDown={(e) => e.key === "Enter" && submitNewRow()}
-                  />
-                </div>
               </td>
               <td>
                 <div className="excel-grid-date-wrap">
@@ -2013,9 +2013,9 @@ function CampaignExcelSpreadsheet({ campaign, shown, removeInfluencer, changeSta
             <tr className="excel-footer-row">
               <td colSpan={2} style={{ textAlign: "center" }}>TOTAL</td>
               <td>{rows.length} Influencer{rows.length === 1 ? "" : "s"}</td>
-              <td colSpan={5}>{finalisedCount} Finalised for Client</td>
+              <td colSpan={3}>{finalisedCount} Finalised for Client</td>
               <td style={{ color: "#7bf59e", fontSize: 14, fontWeight: 700 }}>₹{totalRate.toLocaleString("en-IN")}</td>
-              <td colSpan={2} style={{ textAlign: "right", color: "#777", fontSize: 11 }}>
+              <td colSpan={4} style={{ textAlign: "right", color: "#777", fontSize: 11 }}>
                 💡 Click any cell to edit & auto-save directly
               </td>
             </tr>
@@ -2080,7 +2080,8 @@ export function CampaignDetail({ id, onBack, isPage }) {
       {/* Campaign Hero Bar: Heading on Left, KPIs on Right */}
       <div className="campaign-hero-bar">
         <div className="campaign-hero-left">
-          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 6, flexWrap: "wrap" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 14, flexWrap: "wrap" }}>
+            <h1 style={{ fontSize: 30, margin: 0, letterSpacing: "-1px" }}>{campaign.title}</h1>
             <select
               className="campaign-status-switcher"
               value={campaign.status}
@@ -2102,7 +2103,6 @@ export function CampaignDetail({ id, onBack, isPage }) {
               <option value="cancelled">• CANCELLED</option>
             </select>
           </div>
-          <h1 style={{ fontSize: 30, margin: 0, letterSpacing: "-1px" }}>{campaign.title}</h1>
         </div>
 
         {/* Right side KPI Stats */}
@@ -2233,15 +2233,46 @@ export function CampaignDetail({ id, onBack, isPage }) {
                     )}
                     {inf.phone && <span>📞 {inf.phone}</span>}
                     {inf.location && <span>📍 {inf.location}</span>}
-                    {inf.date_available && (
-                      <span className="roster-date">
-                        🗓 {getDayOfWeek(inf.date_available) ? `${getDayOfWeek(inf.date_available)}, ` : ""}{inf.date_available}
-                      </span>
-                    )}
                   </div>
 
-                  {inf.deliverables && <div className="roster-deliverables">📦 <b>Deliverables:</b> {inf.deliverables}</div>}
-                  {inf.remark && <p className="roster-remark">“{inf.remark}”</p>}
+                  {/* Structured Deliverables, Remarks & Date Section */}
+                  <div className="roster-fields-grid">
+                    <div className="roster-field-box">
+                      <span className="roster-field-label">📦 DELIVERABLES</span>
+                      <div className="roster-field-content">
+                        {inf.deliverables ? (
+                          <span className="roster-deliverables-text">{inf.deliverables}</span>
+                        ) : (
+                          <span className="roster-empty-text">—</span>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="roster-field-box">
+                      <span className="roster-field-label">💬 REMARKS / NOTES</span>
+                      <div className="roster-field-content">
+                        {inf.remark ? (
+                          <span className="roster-remark-text">“{inf.remark}”</span>
+                        ) : (
+                          <span className="roster-empty-text">—</span>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="roster-field-box">
+                      <span className="roster-field-label">🗓 DATE / TIME FIXED</span>
+                      <div className="roster-field-content">
+                        {inf.date_available ? (
+                          <span className="roster-date-text">
+                            {getDayOfWeek(inf.date_available) ? <b>{getDayOfWeek(inf.date_available)}, </b> : ""}
+                            {inf.date_available}
+                          </span>
+                        ) : (
+                          <span className="roster-empty-text">Not fixed</span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
 
                   <div className="roster-actions">
                     <select

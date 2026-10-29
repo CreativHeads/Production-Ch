@@ -486,9 +486,9 @@ module.exports = function (r) {
       "Phone",
       "Social Profile / Handle",
       "Deliverables",
+      "Rate Fixed (₹)",
       "Remarks",
       "Location",
-      "Rate Fixed (₹)",
       "Date / Time Fixed",
       "Day",
       "Status",
@@ -519,9 +519,9 @@ module.exports = function (r) {
         phone,
         inf.profile_url || "-",
         inf.deliverables || "-",
+        rate > 0 ? rate : "-",
         inf.remark || "-",
         inf.location || "-",
-        rate > 0 ? rate : "-",
         inf.date_available || "TBD",
         day,
         inf.status ? inf.status.replace(/_/g, " ").toUpperCase() : "NOT CONTACTED",
@@ -531,7 +531,7 @@ module.exports = function (r) {
         cell.font = { name: "Arial", size: 10 };
         cell.alignment = {
           vertical: "middle",
-          horizontal: col === 1 || col === 10 || col === 11 ? "center" : col === 8 ? "right" : "left",
+          horizontal: col === 1 || col === 10 || col === 11 ? "center" : col === 6 ? "right" : "left",
         };
         cell.border = { bottom: { style: "thin", color: { argb: "FFE0E0E0" } } };
       });
@@ -544,18 +544,18 @@ module.exports = function (r) {
       "",
       "",
       "",
-      "",
-      "",
       "TOTAL FINALISED BUDGET:",
       totalRate,
       "",
       "",
       "",
+      "",
+      "",
     ]);
     totalRow.height = 26;
-    totalRow.getCell(7).font = { name: "Arial", size: 11, bold: true };
-    totalRow.getCell(8).font = { name: "Arial", size: 12, bold: true, color: { argb: "FF0A5C1E" } };
-    totalRow.getCell(8).alignment = { horizontal: "right", vertical: "middle" };
+    totalRow.getCell(5).font = { name: "Arial", size: 11, bold: true };
+    totalRow.getCell(6).font = { name: "Arial", size: 12, bold: true, color: { argb: "FF0A5C1E" } };
+    totalRow.getCell(6).alignment = { horizontal: "right", vertical: "middle" };
 
     ws.columns = [
       { width: 6 },
@@ -563,9 +563,9 @@ module.exports = function (r) {
       { width: 18 },
       { width: 26 },
       { width: 26 },
+      { width: 18 },
       { width: 26 },
       { width: 16 },
-      { width: 18 },
       { width: 18 },
       { width: 10 },
       { width: 16 },

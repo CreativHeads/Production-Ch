@@ -204,8 +204,8 @@ export function TalentPage() {
       <Stats />
       <div className="tabs">
         <button className={tab === "cast" ? "on" : ""} onClick={() => setTab("cast")}>Actors & Cast <span>{counts.cast}</span></button>
-        <button className={tab === "all" ? "on" : ""} onClick={() => setTab("all")}>All talent <span>{counts.all}</span></button>
         <button className={tab === "influencers" ? "on" : ""} onClick={() => setTab("influencers")}>✦ Influencers <span>{counts.inf}</span></button>
+        <button className={tab === "all" ? "on" : ""} onClick={() => setTab("all")}>All talent <span>{counts.all}</span></button>
         <button className={tab === "fav" ? "on" : ""} onClick={() => setTab("fav")}>Favorites <span>{counts.fav}</span></button>
         <button className={tab === "recent" ? "on" : ""} onClick={() => setTab("recent")}>Recently added</button>
       </div>

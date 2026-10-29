@@ -34,8 +34,9 @@ function getStatusBadge(st) {
   const norm = (st || "not_contacted").toLowerCase();
   switch (norm) {
     case "finalised":
+    case "finalized":
     case "confirmed":
-      return { label: "✓ Finalized", bg: "#1c1c1c", color: "#ffffff", border: "#3a3a3a" };
+      return { label: "✓ Finalized", bg: "rgba(34, 197, 94, 0.16)", color: "#4ade80", border: "rgba(34, 197, 94, 0.45)" };
     case "completed":
       return { label: "Completed", bg: "#191919", color: "#e0e0e0", border: "#333333" };
     case "shortlisted":
@@ -334,8 +335,8 @@ export default function PublicCampaignShare({ campaignId }) {
                   <th style={{ minWidth: 170 }}>Influencer Name</th>
                   <th style={{ minWidth: 160 }}>Profile Link</th>
                   <th style={{ minWidth: 220 }}>Deliverables</th>
-                  <th style={{ minWidth: 240 }}>Remarks</th>
                   <th style={{ minWidth: 120 }}>Rate (₹)</th>
+                  <th style={{ minWidth: 240 }}>Remarks</th>
                   <th style={{ minWidth: 160 }}>Date Fixed</th>
                   <th style={{ minWidth: 130 }}>Status</th>
                 </tr>
@@ -382,12 +383,12 @@ export default function PublicCampaignShare({ campaignId }) {
                         <div className="client-table-text">{inf.deliverables || "—"}</div>
                       </td>
                       <td>
+                        <strong style={{ color: "#ffffff", fontSize: 13 }}>₹{formatRate(inf.rate_fixed)}</strong>
+                      </td>
+                      <td>
                         <div className="client-table-text" style={{ fontStyle: inf.remark ? "italic" : "normal" }}>
                           {inf.remark ? `“${inf.remark}”` : "—"}
                         </div>
-                      </td>
-                      <td>
-                        <strong style={{ color: "#ffffff", fontSize: 13 }}>₹{formatRate(inf.rate_fixed)}</strong>
                       </td>
                       <td>
                         {inf.date_available ? (
