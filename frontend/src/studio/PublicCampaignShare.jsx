@@ -36,21 +36,21 @@ function getStatusBadge(st) {
     case "finalised":
     case "finalized":
     case "confirmed":
-      return { label: "✓ Finalized", bg: "rgba(34, 197, 94, 0.16)", color: "#4ade80", border: "rgba(34, 197, 94, 0.45)" };
+      return { label: "✓ Finalized", bg: "#0d2614", color: "#4ade80", border: "#1f6b34" };
     case "completed":
-      return { label: "Completed", bg: "#191919", color: "#e0e0e0", border: "#333333" };
+      return { label: "✓ Completed", bg: "#0a2622", color: "#2dd4bf", border: "#166155" };
     case "shortlisted":
-      return { label: "Shortlisted", bg: "#1c1824", color: "#d8b4fe", border: "#38294e" };
+      return { label: "★ Shortlisted", bg: "#231433", color: "#c084fc", border: "#55267f" };
     case "contacted":
     case "pitched":
-      return { label: "Contacted", bg: "#141c24", color: "#93c5fd", border: "#23384a" };
+      return { label: "Contacted", bg: "#0f2338", color: "#60a5fa", border: "#1e4d7a" };
     case "no_response":
-      return { label: "No Respond", bg: "#181818", color: "#888888", border: "#2c2c2c" };
+      return { label: "No Respond", bg: "#1f1f1f", color: "#a3a3a3", border: "#3d3d3d" };
     case "rejected":
     case "declined":
-      return { label: "Rejected", bg: "#241414", color: "#f87171", border: "#4a2323" };
+      return { label: "Rejected", bg: "#2c1214", color: "#f87171", border: "#6e2327" };
     default:
-      return { label: "Not Contacted", bg: "#221c12", color: "#fcd34d", border: "#44341b" };
+      return { label: "Not Contacted", bg: "#2b210c", color: "#fbbf24", border: "#694d13" };
   }
 }
 
@@ -175,10 +175,18 @@ export default function PublicCampaignShare({ campaignId }) {
             <button className={tab === "all" ? "active" : ""} onClick={() => setTab("all")}>
               All ({roster.length})
             </button>
-            <button className={tab === "finalised" ? "active" : ""} onClick={() => setTab("finalised")}>
+            <button
+              className={tab === "finalised" ? "active" : ""}
+              onClick={() => setTab("finalised")}
+              style={tab !== "finalised" ? { color: "#4ade80" } : {}}
+            >
               ✓ Finalized ({finalisedList.length})
             </button>
-            <button className={tab === "shortlisted" ? "active" : ""} onClick={() => setTab("shortlisted")}>
+            <button
+              className={tab === "shortlisted" ? "active" : ""}
+              onClick={() => setTab("shortlisted")}
+              style={tab !== "shortlisted" ? { color: "#c084fc" } : {}}
+            >
               Shortlisted ({shortlistedList.length})
             </button>
           </div>

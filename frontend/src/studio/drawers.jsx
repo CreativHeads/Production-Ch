@@ -2278,7 +2278,12 @@ export function CampaignDetail({ id, onBack, isPage }) {
                     <select
                       className="roster-status-select"
                       value={inf.status || "not_contacted"}
-                      style={{ color: getInfluencerStatusColor(inf.status || "not_contacted") }}
+                      style={{
+                        color: getInfluencerStatusColor(inf.status || "not_contacted"),
+                        borderColor: getInfluencerStatusColor(inf.status || "not_contacted") + "55",
+                        background: getInfluencerStatusColor(inf.status || "not_contacted") + "15",
+                        fontWeight: 600,
+                      }}
                       onChange={(e) => changeStatus(inf, e.target.value)}
                     >
                       {INFLUENCER_STATUS_OPTIONS.map((opt) => (
