@@ -17,8 +17,3 @@ cue.creativheads.com {
 	encode gzip
 	reverse_proxy cue-tracker:3000
 }
-
-# Old domain — permanently redirect to the new TakeBoard domain so existing links keep working.
-production.creativheads.com {
-	redir https://takeboard.creativheads.com{uri} permanent
-}
