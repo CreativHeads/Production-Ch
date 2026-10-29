@@ -34,7 +34,7 @@ cd ../frontend && npx vite build --outDir ../server/public --emptyOutDir
 |---|---|
 | `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, `DB_PASSWORD` | MySQL. Written by hPanel's database setup. When `DB_HOST` is set, the server uses MySQL. |
 | `SECRET_KEY` | Signs session cookies and password reset links. Keep it secret and stable. |
-| `APP_BASE_URL` | Used in password reset emails, e.g. `https://production.creativheads.com`. |
+| `APP_BASE_URL` | Used in password reset emails, e.g. `https://takeboard.creativheads.com`. |
 | `ADMIN_USERNAME`, `ADMIN_PASSWORD`, `ADMIN_NAME`, `ADMIN_EMAIL` | Only read on first boot, while the users table is empty. |
 | `EMAIL_HOST`, `EMAIL_PORT`, `EMAIL_HOST_USER`, `EMAIL_HOST_PASSWORD`, `DEFAULT_FROM_EMAIL` | Optional SMTP for password reset emails. Without them, emails are written to the app log. |
 | `DATA_DIR` | Uploads, exports and imports. Defaults to `~/casting-data`, outside the versioned app folder, so redeploys keep them. |
