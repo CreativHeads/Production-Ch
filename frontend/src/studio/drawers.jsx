@@ -2052,10 +2052,12 @@ export function CampaignDetail({ id, onBack, isPage }) {
   }
 
   const influencers = campaign.influencers || [];
-  const finalised = influencers.filter((i) => i.status === "finalised" || i.status === "confirmed");
-  const shortlisted = influencers.filter((i) => i.status === "shortlisted" || i.status === "pitched");
+  // Older rows may still carry legacy status names; file them under the current option.
+  const LEGACY_STATUS = { confirmed: "finalised", pitched: "shortlisted", declined: "rejected" };
+  const statusOf = (i) => LEGACY_STATUS[i.status] || i.status || "not_contacted";
+  const finalised = influencers.filter((i) => statusOf(i) === "finalised");
 
-  const shown = tab === "finalised" ? finalised : tab === "shortlisted" ? shortlisted : influencers;
+  const shown = tab === "all" ? influencers : influencers.filter((i) => statusOf(i) === tab);
 
   async function removeInfluencer(inf) {
     if (!confirm(`Remove ${inf.name} from this campaign? (Their profile will remain in the Talent directory)`)) return;
@@ -2178,12 +2180,11 @@ export function CampaignDetail({ id, onBack, isPage }) {
         <button className={tab === "all" ? "on" : ""} onClick={() => setTab("all")}>
           All roster <span>{influencers.length}</span>
         </button>
-        <button className={tab === "finalised" ? "on" : ""} onClick={() => setTab("finalised")}>
-          Finalised for Client <span>{finalised.length}</span>
-        </button>
-        <button className={tab === "shortlisted" ? "on" : ""} onClick={() => setTab("shortlisted")}>
-          Shortlisted / Pitched <span>{shortlisted.length}</span>
-        </button>
+        {INFLUENCER_STATUS_OPTIONS.map((o) => (
+          <button key={o.value} className={tab === o.value ? "on" : ""} onClick={() => setTab(o.value)}>
+            {o.label} <span>{influencers.filter((i) => statusOf(i) === o.value).length}</span>
+          </button>
+        ))}
       </div>
 
       {/* Excel Sheet Table View (Default) */}
