@@ -938,6 +938,7 @@ export const INFLUENCER_STATUS_OPTIONS = [
   { value: "shortlisted", label: "Shortlisted" },
   { value: "rejected", label: "Rejected" },
   { value: "finalised", label: "Finalized" },
+  { value: "scheduled", label: "Scheduled" },
   { value: "completed", label: "Completed" },
 ];
 
@@ -946,6 +947,8 @@ export function getInfluencerStatusColor(st) {
     case "finalised":
     case "confirmed":
       return "#95f589";
+    case "scheduled":
+      return "#f472b6";
     case "completed":
       return "#5eead4";
     case "not_contacted":
@@ -1777,7 +1780,7 @@ function CampaignExcelSpreadsheet({ campaign, shown, removeInfluencer, changeSta
                         style={{
                           flex: 1,
                           color: getInfluencerStatusColor(inf.status || "not_contacted"),
-                          fontWeight: (inf.status === "finalised" || inf.status === "completed") ? 600 : 400,
+                          fontWeight: (inf.status === "finalised" || inf.status === "scheduled" || inf.status === "completed") ? 600 : 400,
                         }}
                         onChange={(e) => {
                           handleCellChange(inf.id, "status", e.target.value);
@@ -1984,7 +1987,7 @@ function CampaignExcelSpreadsheet({ campaign, shown, removeInfluencer, changeSta
                     style={{
                       flex: 1,
                       color: getInfluencerStatusColor(newStatus),
-                      fontWeight: (newStatus === "finalised" || newStatus === "completed") ? 600 : 400,
+                      fontWeight: (newStatus === "finalised" || newStatus === "scheduled" || newStatus === "completed") ? 600 : 400,
                     }}
                     onChange={(e) => setNewStatus(e.target.value)}
                   >

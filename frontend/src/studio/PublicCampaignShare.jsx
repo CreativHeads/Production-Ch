@@ -37,6 +37,8 @@ function getStatusBadge(st) {
     case "finalized":
     case "confirmed":
       return { label: "✓ Finalized", bg: "#0d2614", color: "#4ade80", border: "#1f6b34" };
+    case "scheduled":
+      return { label: "Scheduled", bg: "#2a1222", color: "#f472b6", border: "#6b2450" };
     case "completed":
       return { label: "✓ Completed", bg: "#0a2622", color: "#2dd4bf", border: "#166155" };
     case "shortlisted":
