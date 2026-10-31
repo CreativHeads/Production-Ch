@@ -115,12 +115,59 @@ export default function PublicCampaignShare({ campaignId }) {
   }
 
   const roster = data.roster || [];
-  const finalisedList = roster.filter((i) => i.status === "finalised" || i.status === "confirmed");
-  const shortlistedList = roster.filter((i) => i.status === "shortlisted");
+
+  const LEGACY_STATUS = {
+    confirmed: "finalised",
+    finalized: "finalised",
+    pitched: "shortlisted",
+    declined: "rejected",
+  };
+
+  const normalizeStatus = (st) => {
+    const norm = (st || "not_contacted").toLowerCase();
+    return LEGACY_STATUS[norm] || norm;
+  };
+
+  const counts = {
+    all: roster.length,
+    finalised: 0,
+    shortlisted: 0,
+    scheduled: 0,
+    completed: 0,
+    rejected: 0,
+    contacted: 0,
+    not_contacted: 0,
+  };
+
+  roster.forEach((i) => {
+    const s = normalizeStatus(i.status);
+    if (counts[s] !== undefined) {
+      counts[s]++;
+    } else {
+      counts.not_contacted = (counts.not_contacted || 0) + 1;
+    }
+  });
+
+  const tabs = [
+    { id: "all", label: "All", count: roster.length },
+    { id: "finalised", label: "✓ Finalized", count: counts.finalised, color: "#4ade80" },
+    { id: "shortlisted", label: "Shortlisted", count: counts.shortlisted, color: "#c084fc" },
+    { id: "scheduled", label: "Scheduled", count: counts.scheduled, color: "#f472b6" },
+    { id: "completed", label: "Completed", count: counts.completed, color: "#2dd4bf" },
+    { id: "rejected", label: "Rejected", count: counts.rejected, color: "#f87171" },
+  ];
+
+  if (counts.contacted > 0) {
+    tabs.push({ id: "contacted", label: "Contacted", count: counts.contacted, color: "#60a5fa" });
+  }
+  if (counts.not_contacted > 0) {
+    tabs.push({ id: "not_contacted", label: "Not Contacted", count: counts.not_contacted, color: "#fbbf24" });
+  }
 
   let filtered = roster;
-  if (tab === "finalised") filtered = finalisedList;
-  else if (tab === "shortlisted") filtered = shortlistedList;
+  if (tab !== "all") {
+    filtered = roster.filter((i) => normalizeStatus(i.status) === tab);
+  }
 
   if (search.trim()) {
     const q = search.trim().toLowerCase();
@@ -174,23 +221,19 @@ export default function PublicCampaignShare({ campaignId }) {
         {/* Controls: Search, Tabs, View Toggle */}
         <div className="client-share-controls">
           <div className="client-share-tabs">
-            <button className={tab === "all" ? "active" : ""} onClick={() => setTab("all")}>
-              All ({roster.length})
-            </button>
-            <button
-              className={tab === "finalised" ? "active" : ""}
-              onClick={() => setTab("finalised")}
-              style={tab !== "finalised" ? { color: "#4ade80" } : {}}
-            >
-              ✓ Finalized ({finalisedList.length})
-            </button>
-            <button
-              className={tab === "shortlisted" ? "active" : ""}
-              onClick={() => setTab("shortlisted")}
-              style={tab !== "shortlisted" ? { color: "#c084fc" } : {}}
-            >
-              Shortlisted ({shortlistedList.length})
-            </button>
+            {tabs.map((t) => {
+              const isActive = tab === t.id;
+              return (
+                <button
+                  key={t.id}
+                  className={isActive ? "active" : ""}
+                  onClick={() => setTab(t.id)}
+                  style={!isActive && t.color ? { color: t.color } : {}}
+                >
+                  {t.label} ({t.count})
+                </button>
+              );
+            })}
           </div>
 
           <div className="client-share-tools">

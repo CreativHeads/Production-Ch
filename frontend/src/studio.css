@@ -1361,6 +1361,13 @@ header.client-share-header,
   padding: 3px;
   border-radius: 8px;
   border: 1px solid #222222;
+  overflow-x: auto;
+  max-width: 100%;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.client-share-tabs::-webkit-scrollbar {
+  display: none;
 }
 .client-share-tabs button {
   background: transparent;
@@ -1372,6 +1379,8 @@ header.client-share-header,
   border-radius: 6px;
   cursor: pointer;
   transition: all 0.15s ease;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 .client-share-tabs button.active {
   background: #ffffff;
@@ -1897,15 +1906,18 @@ header.client-share-header,
   }
   .client-share-tabs {
     width: 100% !important;
-    max-width: 440px;
-    justify-content: center !important;
+    max-width: 100% !important;
+    justify-content: flex-start !important;
     margin: 0 auto !important;
     box-sizing: border-box;
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch;
+    padding: 4px !important;
   }
   .client-share-tabs button {
-    flex: 1;
+    flex: 0 0 auto !important;
     text-align: center;
-    padding: 6px 8px;
+    padding: 6px 12px;
     font-size: 11px;
     white-space: nowrap;
   }
